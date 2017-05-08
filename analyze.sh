@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o errexit
 
-TARGET_DIR="$1" # Dir to analyze
+TARGET_DIR="$(readlink -f "$1")" # Dir to analyze
 INCLUDE="*" # Maven artifact include pattern
 
 # Work Dir
@@ -9,6 +9,10 @@ WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 find-modules() {
     local outfile="$WD/modules.tab"
+	if [ -f "$outfile" ]; then
+		echo "Using cached file: $outfile"
+		return
+	fi
     echo -n "" > "$outfile"
     find "$TARGET_DIR" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
@@ -35,11 +39,15 @@ artifact-id() {
 }
 
 packages() {
+	echo "Finding packages"
     # Find unique packages for a module (others will be ignored)
     echo -n "" > "$WD/packages-modules.tsv"
 
-    cut -f 1,5 modules.tab \
+    cut -f 1,5 "$WD/modules.tab" \
     | while read id src ;do
+		if [ ! -d "$src" ]; then
+			continue
+		fi
         local len="${#src}"
         find "$src" -mindepth 1 -type d \
         | cut -c $[ $len + 2 ]- \
@@ -76,28 +84,30 @@ packages() {
 }
 
 usages() {
+	echo "Finding usages"
     # One line per apparent actual package dependency:
     local outfile="$WD/deps-detailed.tsv"
     echo -n "" > "$outfile"
 
-    cut -f 1,4,5,6 modules.tab \
+    cut -f 1,4,5,6 "$WD/modules.tab" \
     | while read id base src resource ;do
-        find "$base" \( -path "$src*" -or -path "$resource*" \) -type f \
+        find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
             -exec fgrep --binary-files=without-match -H -o -f "$WD/packages.txt" {} \; \
             | sed -r 's|^(.*/)?([^/]+)/src/main/([^:]+):(.+)|\2\t\3\t\4|' \
             >> "$outfile"
+			#TODO sed->awk. first column id instead of dir(?)
     done 
     # detailed for debug
     
-    cat $WD/deps-detailed.tsv \
+    cat "$WD/deps-detailed.tsv" \
         | cut -f 1,3 \
         | sort \
         | uniq -c \
         | sed 's/^ *//' \
         | tr ' ' \\t \
-        > $WD/deps-sum-detailed.tsv
+        > "$WD/deps-sum-detailed.tsv"
     
-    cat $WD/deps-sum-detailed.tsv \
+    cat "$WD/deps-sum-detailed.tsv" \
         | awk 'BEGIN{
                 OFS="\t";
                 while(( getline line<"'$WD/packages-modules.tsv'") > 0 ) {
@@ -118,7 +128,7 @@ usages() {
                 }
             }' \
         | sort \
-        > $WD/deps.tsv
+        > "$WD/deps.tsv"
 }
 
 eval() {
@@ -126,22 +136,24 @@ eval() {
 }
 
 artifactids() {
-    cut -f 2 $WD/packages-modules.tsv \
-        > $WD/modules.txt
-    cut -f 1 $WD/deps.tsv \
-        >>$WD/modules.txt
-    cat $WD/modules.txt \
+	echo "artifact ids"
+    cut -f 2 "$WD/packages-modules.tsv" \
+        > "$WD/modules.txt"
+    cut -f 1 "$WD/deps.tsv" \
+        >>"$WD/modules.txt"
+    cat "$WD/modules.txt" \
         | sort \
         | uniq \
         | while read d ;do
-            f=$(find $TARGET_DIR -path "*/$d/pom.xml" -type f -print)
+            f=$(find "$TARGET_DIR" -path "*/$d/pom.xml" -type f -print)
             id="$(eval $f project.groupId):$(eval $f project.artifactId):$(eval $f project.version)"
             echo -e "$d\t$id"
         done \
-        > $WD/modules-ids.tsv
+        > "$WD/modules-ids.tsv"
 }
 
 dependency-tree() {
+	echo "dependency tree"
     # TODO This command assumes projects are located at depth 2 - merge with previous cmd?
     find $TARGET_DIR -mindepth 2 -maxdepth 2 -name pom.xml -type f -printf '%h\n' \
         | while read d ;do
@@ -152,7 +164,8 @@ dependency-tree() {
 }
 
 mvn-deps() {
-    cat $WD/mvn.dot \
+	echo "mvn deps"
+    cat "$WD/mvn.dot" \
         | grep '" -> "' \
         | sort \
         | uniq \
@@ -197,8 +210,8 @@ mvn-deps() {
             }' 
 }
 
-#find-modules
-#packages
+find-modules
+packages
 usages
 artifactids
 dependency-tree
@@ -206,7 +219,7 @@ mvn-deps
 
 
 echo 'digraph {' > "$WD/mvn-deps.dot"
-cat $WD/mvn.dot \
+cat "$WD/mvn.dot" \
     | grep '" -> "' \
     | sort \
     | uniq \
