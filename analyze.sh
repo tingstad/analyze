@@ -1,7 +1,6 @@
 #!/bin/bash
 set -o errexit
 
-TARGET_DIR="$(readlink -f "$1")" # Dir to analyze
 INCLUDE="*" # Maven artifact include pattern
 
 # Work Dir
@@ -17,15 +16,15 @@ find-modules() {
     find "$TARGET_DIR" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
         echo -n "Found module $f"
-        local pkg="$(eval $f project.packaging)"
+        local pkg="$(mvneval $f project.packaging)"
         if [ "$pkg" = "pom" ]; then
             echo " - packaging pom, skipping..."
             continue;
         fi
         echo -n " - packaging $pkg"
-        local base="$(eval "$f" project.basedir)"
-        local src="$(eval "$f" project.build.sourceDirectory)"
-        local resources="$(eval "$f" project.build.resources[0].directory)"
+        local base="$(mvneval "$f" project.basedir)"
+        local src="$(mvneval "$f" project.build.sourceDirectory)"
+        local resources="$(mvneval "$f" project.build.resources[0].directory)"
         local id="$(artifact-id "$f")"
         echo " - $id" 
         echo -e "$id\t$pkg\t$f\t$base\t$src\t$resources" \
@@ -35,7 +34,7 @@ find-modules() {
 
 artifact-id() {
     local f="$1"
-    echo "$(eval "$f" project.groupId):$(eval "$f" project.artifactId):$(eval "$f" project.version)"    
+    echo "$(mvneval "$f" project.groupId):$(mvneval "$f" project.artifactId):$(mvneval "$f" project.version)"    
 }
 
 packages() {
@@ -43,6 +42,7 @@ packages() {
     # Find unique packages for a module (others will be ignored)
     echo -n "" > "$WD/packages-modules.tsv"
 
+    # 1: id, 5: src
     cut -f 1,5 "$WD/modules.tab" \
     | while read id src ;do
 		if [ ! -d "$src" ]; then
@@ -51,7 +51,7 @@ packages() {
         local len="${#src}"
         find "$src" -mindepth 1 -type d \
         | cut -c $[ $len + 2 ]- \
-        | awk '{ print "'$id'\t" $0 }' 
+        | awk '{ print "'"$id"'\t" $0 }' 
     done \
         | awk 'BEGIN{ OFS="\t"; }
             { map[$2]=($1 "/" map[$2]); } 
@@ -62,6 +62,7 @@ packages() {
                         delete map[k];
                 }
                 for (k in map){ 
+                    print "2 " k " " map[k]
                     c=k;
                     while(c in map){
                         i=c;
@@ -75,9 +76,10 @@ packages() {
                     gsub(/[\/]/,".",k);
                     print k,v;
                 }  
-            }' \
-        | sort \
-        >> "$WD/packages-modules.tsv"
+            }' 
+#TODO fix
+#        | sort \
+#        >> "$WD/packages-modules.tsv"
     
     # Packages:
     cut -f 1 "$WD/packages-modules.tsv" > "$WD/packages.txt"
@@ -131,7 +133,7 @@ usages() {
         > "$WD/deps.tsv"
 }
 
-eval() {
+mvneval() {
     mvn -B -f "$1" org.apache.maven.plugins:maven-help-plugin:2.2:evaluate -Dexpression=$2 | grep -v '^\['
 }
 
@@ -146,7 +148,7 @@ artifactids() {
         | uniq \
         | while read d ;do
             f=$(find "$TARGET_DIR" -path "*/$d/pom.xml" -type f -print)
-            id="$(eval $f project.groupId):$(eval $f project.artifactId):$(eval $f project.version)"
+            id="$(mvneval $f project.groupId):$(mvneval $f project.artifactId):$(mvneval $f project.version)"
             echo -e "$d\t$id"
         done \
         > "$WD/modules-ids.tsv"
@@ -202,7 +204,7 @@ mvn-deps() {
                     if(!(k in mvn)){
                         split(k,a);
                         print "\"" a[1] "\" -> \"" a[2] "\" [penwidth=" (dep[k] / 10) ",color=red];";
-                    }
+                    
                     if((a[2] FS a[1]) in dep)
                         print k,"REVERSE!!!!!";
                 }
@@ -210,20 +212,25 @@ mvn-deps() {
             }' 
 }
 
-find-modules
-packages
-usages
-artifactids
-dependency-tree
-mvn-deps
+[ -n TESTMODE ] && return
 
+main() {
 
-echo 'digraph {' > "$WD/mvn-deps.dot"
-cat "$WD/mvn.dot" \
-    | grep '" -> "' \
-    | sort \
-    | uniq \
-    >> "$WD/mvn-deps.dot"
-echo '}' >> "$WD/mvn-deps.dot"
+    TARGET_DIR="$(readlink -f "$1")" # Dir to analyze
 
+    find-modules
+    packages
+    usages
+    artifactids
+    dependency-tree
+    mvn-deps
+
+    echo 'digraph {' > "$WD/mvn-deps.dot"
+    cat "$WD/mvn.dot" \
+        | grep '" -> "' \
+        | sort \
+        | uniq \
+        >> "$WD/mvn-deps.dot"
+    echo '}' >> "$WD/mvn-deps.dot"
+}
 
