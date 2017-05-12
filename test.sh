@@ -13,11 +13,17 @@ testPackageDetection() {
     WD="$src1"
     TARGET_DIR="$src1"
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$src1/modules.tab"
-    #echo -e "id2\tjar\tpom.xml\t$src2\t$src2\t$src2" >>"$src1/modules.tab"
+    echo -e "id2\tjar\tpom.xml\t$src2\t$src2\t$src2" >>"$src1/modules.tab"
 
     packages
 
     assertTrue '' "[ -f "$src1/packages-modules.tsv" ]"
+    read -r -d '' expected <<- TIL
+		com.foo.package2	id1
+		com.foo.package3	id1
+		com.foo.package4	id2
+	TIL
+    assertEquals '' "$expected" "$(cat "$src1/packages-modules.tsv")"
 }
 
 DIR="$( dirname "$(pwd)/$0" )"

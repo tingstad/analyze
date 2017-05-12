@@ -8,10 +8,10 @@ WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 find-modules() {
     local outfile="$WD/modules.tab"
-	if [ -f "$outfile" ]; then
-		echo "Using cached file: $outfile"
-		return
-	fi
+    if [ -f "$outfile" ]; then
+        echo "Using cached file: $outfile"
+        return
+    fi
     echo -n "" > "$outfile"
     find "$TARGET_DIR" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
@@ -38,16 +38,16 @@ artifact-id() {
 }
 
 packages() {
-	echo "Finding packages"
+    echo "Finding packages"
     # Find unique packages for a module (others will be ignored)
     echo -n "" > "$WD/packages-modules.tsv"
 
     # 1: id, 5: src
     cut -f 1,5 "$WD/modules.tab" \
     | while read id src ;do
-		if [ ! -d "$src" ]; then
-			continue
-		fi
+        if [ ! -d "$src" ]; then
+            continue
+        fi
         local len="${#src}"
         find "$src" -mindepth 1 -type d \
         | cut -c $[ $len + 2 ]- \
@@ -55,14 +55,16 @@ packages() {
     done \
         | awk 'BEGIN{ OFS="\t"; }
             { map[$2]=($1 "/" map[$2]); } 
+            # map[pkg] = id1/id2/
             END{
+                # delete packages not unique to a single module
                 for (k in map){ 
                     v=map[k]; gsub(/[^\/]/,"",v); 
                     if(length(v)>1) 
                         delete map[k];
                 }
+                # keep only deepest packages
                 for (k in map){ 
-                    print "2 " k " " map[k]
                     c=k;
                     while(c in map){
                         i=c;
@@ -70,23 +72,23 @@ packages() {
                     }
                     map2[i]=map[k];
                 }
+                # print results
                 for (k in map2){
                     v=map2[k];
                     gsub(/[\/]/,"",v);
                     gsub(/[\/]/,".",k);
                     print k,v;
                 }  
-            }' 
-#TODO fix
-#        | sort \
-#        >> "$WD/packages-modules.tsv"
+            }' \
+        | sort \
+        >> "$WD/packages-modules.tsv"
     
     # Packages:
     cut -f 1 "$WD/packages-modules.tsv" > "$WD/packages.txt"
 }
 
 usages() {
-	echo "Finding usages"
+    echo "Finding usages"
     # One line per apparent actual package dependency:
     local outfile="$WD/deps-detailed.tsv"
     echo -n "" > "$outfile"
@@ -94,10 +96,11 @@ usages() {
     cut -f 1,4,5,6 "$WD/modules.tab" \
     | while read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
-            -exec fgrep --binary-files=without-match -H -o -f "$WD/packages.txt" {} \; \
-            | sed -r 's|^(.*/)?([^/]+)/src/main/([^:]+):(.+)|\2\t\3\t\4|' \
+            -exec fgrep --color=never --binary-files=without-match -H -o -f "$WD/packages.txt" {} \; \
+            | awk -F: 'BEGIN{OFS="\t"} { d[1]='"$src"'; d[2]='"$resource"'; for(s in d){ if(index($1,d[s])==1) $1=substr($1,len(d[s])); break; } print $1,$2; }' \
             >> "$outfile"
-			#TODO sed->awk. first column id instead of dir(?)
+            #| sed -r 's|^(.*/)?([^/]+)/src/main/([^:]+):(.+)|\2\t\3\t\4|' \
+            #TODO sed->awk. first column id instead of dir(?)
     done 
     # detailed for debug
     
@@ -138,7 +141,7 @@ mvneval() {
 }
 
 artifactids() {
-	echo "artifact ids"
+    echo "artifact ids"
     cut -f 2 "$WD/packages-modules.tsv" \
         > "$WD/modules.txt"
     cut -f 1 "$WD/deps.tsv" \
@@ -155,7 +158,7 @@ artifactids() {
 }
 
 dependency-tree() {
-	echo "dependency tree"
+    echo "dependency tree"
     # TODO This command assumes projects are located at depth 2 - merge with previous cmd?
     find $TARGET_DIR -mindepth 2 -maxdepth 2 -name pom.xml -type f -printf '%h\n' \
         | while read d ;do
@@ -166,7 +169,7 @@ dependency-tree() {
 }
 
 mvn-deps() {
-	echo "mvn deps"
+    echo "mvn deps"
     cat "$WD/mvn.dot" \
         | grep '" -> "' \
         | sort \
