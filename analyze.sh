@@ -97,7 +97,7 @@ usages() {
     | while read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
             -exec fgrep --color=never --binary-files=without-match -H -o -f "$WD/packages.txt" {} \; \
-            | awk -F: 'BEGIN{OFS="\t"} { d[1]='"$src"'; d[2]='"$resource"'; for(s in d){ if(index($1,d[s])==1) $1=substr($1,len(d[s])); break; } print $1,$2; }' \
+            | awk -F: 'BEGIN{OFS="\t"} { d[1]="'"$src"'"; d[2]="'"$resource"'"; for(s in d){ if(index($1,d[s])==1) $1=substr($1,length(d[s])+2); break; } print $1,$2; }' \
             >> "$outfile"
             #| sed -r 's|^(.*/)?([^/]+)/src/main/([^:]+):(.+)|\2\t\3\t\4|' \
             #TODO sed->awk. first column id instead of dir(?)
@@ -215,8 +215,6 @@ mvn-deps() {
             }' 
 }
 
-[ -n TESTMODE ] && return
-
 main() {
 
     TARGET_DIR="$(readlink -f "$1")" # Dir to analyze
@@ -226,8 +224,6 @@ main() {
     usages
     artifactids
     dependency-tree
-    mvn-deps
-
     echo 'digraph {' > "$WD/mvn-deps.dot"
     cat "$WD/mvn.dot" \
         | grep '" -> "' \
@@ -236,4 +232,8 @@ main() {
         >> "$WD/mvn-deps.dot"
     echo '}' >> "$WD/mvn-deps.dot"
 }
+
+[ -n "$TESTMODE" ] && return
+
+main $@
 
