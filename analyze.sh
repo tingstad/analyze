@@ -97,10 +97,15 @@ usages() {
     | while read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
             -exec fgrep --color=never --binary-files=without-match -H -o -f "$WD/packages.txt" {} \; \
-            | awk -F: 'BEGIN{OFS="\t"} { d[1]="'"$src"'"; d[2]="'"$resource"'"; for(s in d){ if(index($1,d[s])==1) $1=substr($1,length(d[s])+2); break; } print $1,$2; }' \
+            | awk -F: 'BEGIN{OFS="\t"} {
+                        d[1]="'"$src"'"; d[2]="'"$resource"'";
+                        for(s in d){
+                            if(index($1,d[s])==1) {
+                                $1=substr($1,length(d[s])+2);
+                                break;
+                            }
+                        } print "'"$id"'",$1,$2; }' \
             >> "$outfile"
-            #| sed -r 's|^(.*/)?([^/]+)/src/main/([^:]+):(.+)|\2\t\3\t\4|' \
-            #TODO sed->awk. first column id instead of dir(?)
     done 
     # detailed for debug
     
@@ -140,30 +145,13 @@ mvneval() {
     mvn -B -f "$1" org.apache.maven.plugins:maven-help-plugin:2.2:evaluate -Dexpression=$2 | grep -v '^\['
 }
 
-artifactids() {
-    echo "artifact ids"
-    cut -f 2 "$WD/packages-modules.tsv" \
-        > "$WD/modules.txt"
-    cut -f 1 "$WD/deps.tsv" \
-        >>"$WD/modules.txt"
-    cat "$WD/modules.txt" \
-        | sort \
-        | uniq \
-        | while read d ;do
-            f=$(find "$TARGET_DIR" -path "*/$d/pom.xml" -type f -print)
-            id="$(mvneval $f project.groupId):$(mvneval $f project.artifactId):$(mvneval $f project.version)"
-            echo -e "$d\t$id"
-        done \
-        > "$WD/modules-ids.tsv"
-}
-
 dependency-tree() {
     echo "dependency tree"
     # TODO This command assumes projects are located at depth 2 - merge with previous cmd?
     find $TARGET_DIR -mindepth 2 -maxdepth 2 -name pom.xml -type f -printf '%h\n' \
         | while read d ;do
             cd "$d" \
-            && mvn -B -q dependency:tree -Dincludes=$INCLUDE -DoutputType=dot -DoutputFile=$WD/mvn.dot -DappendOutput=true \
+            && mvn -B -q dependency:tree -Dincludes="$INCLUDE" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true \
             && cd .. 
         done
 }
@@ -177,15 +165,9 @@ mvn-deps() {
         | sed 's/\s*//g;s/->/\t/;s/"//g' \
         | awk 'BEGIN{
                 OFS="\t";
-                while(( getline line<"'$WD/modules-ids.tsv'") > 0 ) {
+                while(( getline line<"'"$WD/deps.tsv"'") > 0 ) {
                     split(line,a);
-                    id[a[1]]=a[2];
-                }
-                while(( getline line<"'$WD/deps.tsv'") > 0 ) {
-                    split(line,a);
-                    if(!id[a[1]]) print "FANT IKKE ID " a[1];
-                    if(!id[a[2]]) print "FANT IKKE ID " a[2];
-                    dep[id[a[1]] FS id[a[2]]]=a[3];
+                    dep[a[1] FS a[2]]=a[3];
                 }
                 print "digraph {";
             }
@@ -222,7 +204,6 @@ main() {
     find-modules
     packages
     usages
-    artifactids
     dependency-tree
     echo 'digraph {' > "$WD/mvn-deps.dot"
     cat "$WD/mvn.dot" \
