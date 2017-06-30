@@ -198,7 +198,10 @@ mvn-deps() {
 }
 
 main() {
-
+    if [ -z "$1" ]; then
+        echo "Usage: "$0" DIR" >&2
+        exit 1
+    fi
     TARGET_DIR="$(readlink -f "$1")" # Dir to analyze
 
     find-modules
@@ -206,6 +209,7 @@ main() {
     usages
     dependency-tree
     echo 'digraph {' > "$WD/mvn-deps.dot"
+    # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$INCLUDE":/{print}" 
     cat "$WD/mvn.dot" \
         | grep '" -> "' \
         | sort \

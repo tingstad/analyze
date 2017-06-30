@@ -60,6 +60,38 @@ testUsages() {
 		id2	com/foo/package4/Two.java	com.foo.package4
 	TIL
     assertEquals '' "$(echo -e "$expected" | sort)" "$(cat "$WD/deps-detailed.tsv" | sort)"
+    assertEquals '' "$(echo -e "id1\tid2\t1\nid2\tid1\t1" | sort)" "$(cat "$WD/deps.tsv" | sort)"
+}
+
+testUsages2() {
+    local src1="$(mktemp -d)"
+    mkdir -p "$src1/src/com/foo/package2" 
+    local src2="$(mktemp -d)"
+    mkdir -p "$src2/src/com/foo/package4" 
+    WD="$src1"
+    TARGET_DIR="$src1"
+    echo -e "package com.foo.package2;\nimport com.foo.package4.Two;public class One{} " \
+        > "$src1/src/com/foo/package2/One.java"
+    echo -e "package com.foo.package4;\nimport com.foo.package2.One;public class Two{} " \
+        > "$src2/src/com/foo/package4/Two.java"
+    echo -e "id1\tjar\tpom.xml\t$src1\t$src1/src\t$src1/src" > "$WD/modules.tab"
+    echo -e "id2\tjar\tpom.xml\t$src2\t$src2/src\t$src2/src" >>"$WD/modules.tab"
+    cat <<- TIL > "$WD/packages-modules.tsv"
+		com.foo.package2	id1
+		com.foo.package4	id2
+	TIL
+    cut -f1 "$WD/packages-modules.tsv" > "$WD/packages.txt"
+
+    usages
+
+    read -r -d '' expected <<- TIL
+		id1	com/foo/package2/One.java	com.foo.package2
+		id1	com/foo/package2/One.java	com.foo.package4
+		id2	com/foo/package4/Two.java	com.foo.package2
+		id2	com/foo/package4/Two.java	com.foo.package4
+	TIL
+    assertEquals '' "$(echo -e "$expected" | sort)" "$(cat "$WD/deps-detailed.tsv" | sort)"
+    assertEquals '' "$(echo -e "id1\tid2\t1\nid2\tid1\t1" | sort)" "$(cat "$WD/deps.tsv" | sort)"
 }
 
 DIR="$( dirname "$(pwd)/$0" )"
