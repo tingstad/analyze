@@ -27,7 +27,7 @@ find-modules() {
         local resources="$(mvneval "$f" project.build.resources[0].directory)"
         local id="$(artifact-id "$f")"
         echo " - $id" 
-        echo -e "$id\t$pkg\t$f\t$base\t$src\t$resources" \
+        echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}" \
             >> "$outfile"
     done
 }
@@ -147,12 +147,9 @@ mvneval() {
 
 dependency-tree() {
     echo "dependency tree"
-    # TODO This command assumes projects are located at depth 2 - merge with previous cmd?
-    find $TARGET_DIR -mindepth 2 -maxdepth 2 -name pom.xml -type f -printf '%h\n' \
-        | while read d ;do
-            cd "$d" \
-            && mvn -B -q dependency:tree -Dincludes="$INCLUDE" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true \
-            && cd .. 
+    cut -f 3,4 "$WD/modules.tab" \
+        | while read pom base ;do
+            (cd "$base" && mvn -B -q dependency:tree -Dincludes="$INCLUDE" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true)
         done
 }
 
