@@ -155,10 +155,15 @@ dependency-tree() {
 
 mvn-deps() {
     echo "mvn deps"
+    echo 'digraph {' > "$WD/mvn-deps.dot"
     cat "$WD/mvn.dot" \
         | grep '" -> "' \
         | sort \
         | uniq \
+        >> "$WD/mvn-deps.dot"
+    echo '}' >> "$WD/mvn-deps.dot"
+    cat "$WD/mvn-deps.dot" \
+        | grep '" -> "' \
         | sed 's/\s*//g;s/->/\t/;s/"//g' \
         | awk 'BEGIN{
                 OFS="\t";
@@ -186,7 +191,7 @@ mvn-deps() {
                     if(!(k in mvn)){
                         split(k,a);
                         print "\"" a[1] "\" -> \"" a[2] "\" [penwidth=" (dep[k] / 10) ",color=red];";
-                    
+                    } 
                     if((a[2] FS a[1]) in dep)
                         print k,"REVERSE!!!!!";
                 }
@@ -205,14 +210,8 @@ main() {
     packages
     usages
     dependency-tree
-    echo 'digraph {' > "$WD/mvn-deps.dot"
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$INCLUDE":/{print}" 
-    cat "$WD/mvn.dot" \
-        | grep '" -> "' \
-        | sort \
-        | uniq \
-        >> "$WD/mvn-deps.dot"
-    echo '}' >> "$WD/mvn-deps.dot"
+    mvn-deps
 }
 
 [ -n "$TESTMODE" ] && return
