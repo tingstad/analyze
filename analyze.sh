@@ -10,6 +10,8 @@ find-modules() {
     local outfile="$WD/modules.tab"
     if [ -f "$outfile" ]; then
         echo "Using cached file: $outfile"
+        # TODO check hash of mvn org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom
+        # to increase performance
         return
     fi
     echo -n "" > "$outfile"
@@ -153,6 +155,8 @@ dependency-tree() {
         done
 }
 
+# reads mvn.dot and deps.tsv
+# to create result dot graph
 mvn-deps() {
     echo "mvn deps"
     echo 'digraph {' > "$WD/mvn-deps.dot"
