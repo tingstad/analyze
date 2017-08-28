@@ -204,7 +204,7 @@ mvn-deps() {
 }
 
 main() {
-    if [ -z "$1" ]; then
+    if [ -z "$1" -o ! -d "$1" ]; then
         echo "Usage: "$0" DIR" >&2
         exit 1
     fi
