@@ -208,7 +208,7 @@ main() {
         echo "Usage: "$0" DIR" >&2
         exit 1
     fi
-    TARGET_DIR="$(readlink -f "$1")" # Dir to analyze
+    TARGET_DIR="$(cd "$1" && pwd)" # Dir to analyze
 
     find-modules
     packages
