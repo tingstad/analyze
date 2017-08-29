@@ -36,7 +36,19 @@ find-modules() {
 
 artifact-id() {
     local f="$1"
-    echo "$(mvneval "$f" project.groupId):$(mvneval "$f" project.artifactId):$(mvneval "$f" project.version)"    
+    local o="$WD/effective-pom.xml"
+    mvn -B -q -f "$f" org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom -Doutput="$o"
+    cat "$o" \
+        | sed '/<parent>/,/<\/parent>/d' \
+        | awk '
+            function content(tag) {
+                s = substr(tag, index(tag, ">")+1);
+                return substr(s, 0, index(s, "<")-1);
+            }
+            !a && /<artifactId>/ { a=content($0) }
+            !g && /<groupId>/ { g=content($0) }
+            !v && /<version>/ { v=content($0) }
+            END { print g ":" a ":" v }'
 }
 
 packages() {

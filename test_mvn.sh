@@ -1,3 +1,5 @@
+#!/bin/bash
+
 testMvnDependencyTreeOneSimpleModule() {
     local dir="$(mktemp -d)"
     mkdir -p "$dir"
@@ -65,6 +67,29 @@ testMvnDependencyTreeTwoModules() {
         | sed '$a\\t"g:b:jar:1" -> "g:a:jar:1:compile" ; '\
         | sed '$a\ } ')
     assertEquals "${expected}" "$(cat "$WD/mvn.dot")"
+}
+
+testFindOneModule() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module1"
+    mkdir -p "$base1/src/main/java"
+    WD="$dir"
+    TARGET_DIR="$dir"
+    cat <<- EOF > "$base1/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>a</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+
+    find-modules
+
+    read -r -d '' expected <<- EOF
+		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources
+	EOF
+    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
 }
 
 DIR="$( dirname "$(pwd)/$0" )"
