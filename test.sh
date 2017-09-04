@@ -111,6 +111,44 @@ testFileTargetArgument() {
     assertEquals 'Should print usage' "Usage:" "$(echo "$out" | cut -d' ' -f1)"
 }
 
+testArtifactIdFromSimplePom() {
+    actual=$(cat <<- EOF | artifact-id-from-pom 
+		<project xmlns="http://maven.apache.org/POM/4.0.0">
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>a</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+    )
+ 
+    assertEquals '' "g:a:1" "$actual"
+}
+
+testArtifactIdFromPom() {
+    actual=$(cat <<- EOF | artifact-id-from-pom
+		<project xmlns="http://maven.apache.org/POM/4.0.0">
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>a</artifactId>
+		    <version>1</version>
+		    <build>
+		      <pluginManagement>
+		        <plugins>
+		          <plugin>
+		            <artifactId>maven-antrun-plugin</artifactId>
+		            <version>1.3</version>
+		          </plugin>
+		        </plugins>
+		      </pluginManagement>
+		    </build>
+		</project>
+	EOF
+    )
+
+    assertEquals '' "g:a:1" "$actual"
+}
+
 DIR="$( dirname "$(pwd)/$0" )"
 TESTMODE="on"
 source "$DIR/analyze.sh"

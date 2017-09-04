@@ -58,7 +58,7 @@ testMvnDependencyTreeTwoModules() {
 	EOF
     echo -e "public class One {}" \
         > "$base1/src/main/java/One.java"
-    (cd "$base1" && mvn -B -q -o install -Dmaven.test.skip=true)
+    (cd "$base1" && mvn -B -q install -Dmaven.test.skip=true)
 
     dependency-tree
 
