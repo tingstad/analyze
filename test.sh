@@ -122,6 +122,18 @@ testArgumentHelp() {
     assertEquals 'Should print usage' "$expected" "$(echo "$out")"
 }
 
+testArgumentUnknown() {
+    local out="$(main -x 2>&1)"
+
+    read -r -d '' expected <<- EOF
+		Invalid option: -x
+		Usage: $0 [OPTION...] DIR
+		
+		-h    help
+	EOF
+    assertEquals "$expected" "$(echo "$out")"
+}
+
 testArtifactIdFromSimplePom() {
     actual=$(cat <<- EOF | artifact-id-from-pom 
 		<project xmlns="http://maven.apache.org/POM/4.0.0">

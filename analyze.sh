@@ -7,13 +7,19 @@ INCLUDE="*" # Maven artifact include pattern
 WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 main() {
+    while getopts ":h" opt; do
+        case $opt in
+            h)
+                print_usage_and_exit
+                ;;
+            \?)
+                echo "Invalid option: -$OPTARG" >&2
+                print_usage_and_exit
+                ;;
+        esac
+    done
     if [ -z "$1" -o ! -d "$1" ]; then
-        cat <<- EOF >&2
-			Usage: $0 [OPTION...] DIR
-			
-			-h    help
-		EOF
-        exit 1
+        print_usage_and_exit
     fi
     TARGET_DIR="$(cd "$1" && pwd)" # Dir to analyze
 
@@ -23,6 +29,15 @@ main() {
     dependency_tree
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$INCLUDE":/{print}" 
     mvn_deps
+}
+
+print_usage_and_exit() {
+        cat <<- EOF >&2
+			Usage: $0 [OPTION...] DIR
+			
+			-h    help
+		EOF
+        exit 1
 }
 
 find_modules() {
