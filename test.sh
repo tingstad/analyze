@@ -117,7 +117,7 @@ testArgumentHelp() {
     read -r -d '' expected <<- EOF
 		Usage: $0 [OPTION...] DIR
 		
-		-h    help
+		  -h    help
 	EOF
     assertEquals 'Should print usage' "$expected" "$(echo "$out")"
 }
@@ -129,7 +129,7 @@ testArgumentUnknown() {
 		Invalid option: -x
 		Usage: $0 [OPTION...] DIR
 		
-		-h    help
+		  -h    help
 	EOF
     assertEquals "$expected" "$(echo "$out")"
 }

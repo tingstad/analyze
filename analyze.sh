@@ -35,7 +35,7 @@ print_usage_and_exit() {
         cat <<- EOF >&2
 			Usage: $0 [OPTION...] DIR
 			
-			-h    help
+			  -h    help
 		EOF
         exit 1
 }
