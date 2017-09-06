@@ -15,7 +15,7 @@ testMvnDependencyTreeOneSimpleModule() {
 		</project>
 	EOF
 
-    dependency-tree
+    dependency_tree
 
     read -r -d '' expected <<- TIL
 		digraph "g:a:jar:1" { 
@@ -60,7 +60,7 @@ testMvnDependencyTreeTwoModules() {
         > "$base1/src/main/java/One.java"
     (cd "$base1" && mvn -B -q install -Dmaven.test.skip=true)
 
-    dependency-tree
+    dependency_tree
 
     expected=$(echo 'digraph "g:a:jar:1" { '\
         | sed '$a\ } digraph "g:b:jar:1" { '\
@@ -84,7 +84,7 @@ testFindOneModule() {
 		</project>
 	EOF
 
-    find-modules
+    find_modules
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources

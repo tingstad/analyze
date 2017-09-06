@@ -17,15 +17,15 @@ main() {
     fi
     TARGET_DIR="$(cd "$1" && pwd)" # Dir to analyze
 
-    find-modules
+    find_modules
     packages
     usages
-    dependency-tree
+    dependency_tree
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$INCLUDE":/{print}" 
-    mvn-deps
+    mvn_deps
 }
 
-find-modules() {
+find_modules() {
     local outfile="$WD/modules.tab"
     if [ -f "$outfile" ]; then
         echo "Using cached file: $outfile"
@@ -182,7 +182,7 @@ mvneval() {
     mvn -B -f "$1" org.apache.maven.plugins:maven-help-plugin:2.2:evaluate -Dexpression=$2 | grep -v '^\['
 }
 
-dependency-tree() {
+dependency_tree() {
     echo "dependency tree"
     cut -f 3,4 "$WD/modules.tab" \
         | while read pom base ;do
@@ -192,7 +192,7 @@ dependency-tree() {
 
 # reads mvn.dot and deps.tsv
 # to create result dot graph
-mvn-deps() {
+mvn_deps() {
     echo "mvn deps"
     echo 'digraph {' > "$WD/mvn-deps.dot"
     cat "$WD/mvn.dot" \
