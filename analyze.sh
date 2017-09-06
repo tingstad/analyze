@@ -7,17 +7,30 @@ INCLUDE="*" # Maven artifact include pattern
 WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 main() {
-    while getopts ":h" opt; do
+    local includes="*"
+    while getopts ":hi:" opt; do
         case $opt in
             h)
                 print_usage_and_exit
+                ;;
+            i)
+                includes="$OPTARG"
                 ;;
             \?)
                 echo "Invalid option: -$OPTARG" >&2
                 print_usage_and_exit
                 ;;
+            :)
+                echo "Option -$OPTARG requires an argument" >&2
+                print_usage_and_exit
+                ;;
         esac
     done
+    if [ $[ $# - $OPTIND ] -gt 0 ]; then
+        echo "Too many arguments." >&2
+        print_usage_and_exit
+    fi
+    shift $((OPTIND-1))
     if [ -z "$1" -o ! -d "$1" ]; then
         print_usage_and_exit
     fi

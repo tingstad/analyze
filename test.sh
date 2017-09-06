@@ -134,6 +134,36 @@ testArgumentUnknown() {
     assertEquals "$expected" "$(echo "$out")"
 }
 
+testArgumentWithoutRequiredParameter() {
+    local out="$(main -i 2>&1)"
+
+    read -r -d '' expected <<- EOF
+		Option -i requires an argument
+		Usage: $0 [OPTION...] DIR
+	EOF
+    assertEquals "$expected" "$(echo "$out" | head -n2)"
+}
+
+testArgumentsSuperflous() {
+    local out="$(main one two 2>&1)"
+
+    read -r -d '' expected <<- EOF
+		Too many arguments.
+		Usage: $0 [OPTION...] DIR
+	EOF
+    assertEquals "$expected" "$(echo "$out" | head -n2)"
+}
+
+testArgumentsSuperflousWithOption() {
+    local out="$(main -i inc one two 2>&1)"
+
+    read -r -d '' expected <<- EOF
+		Too many arguments.
+		Usage: $0 [OPTION...] DIR
+	EOF
+    assertEquals "$expected" "$(echo "$out" | head -n2)"
+}
+
 testArtifactIdFromSimplePom() {
     actual=$(cat <<- EOF | artifact-id-from-pom 
 		<project xmlns="http://maven.apache.org/POM/4.0.0">
