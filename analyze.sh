@@ -6,6 +6,21 @@ INCLUDE="*" # Maven artifact include pattern
 # Work Dir
 WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+main() {
+    if [ -z "$1" -o ! -d "$1" ]; then
+        echo "Usage: "$0" DIR" >&2
+        exit 1
+    fi
+    TARGET_DIR="$(cd "$1" && pwd)" # Dir to analyze
+
+    find-modules
+    packages
+    usages
+    dependency-tree
+    # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$INCLUDE":/{print}" 
+    mvn-deps
+}
+
 find-modules() {
     local outfile="$WD/modules.tab"
     if [ -f "$outfile" ]; then
@@ -219,20 +234,6 @@ mvn-deps() {
             }' 
 }
 
-main() {
-    if [ -z "$1" -o ! -d "$1" ]; then
-        echo "Usage: "$0" DIR" >&2
-        exit 1
-    fi
-    TARGET_DIR="$(cd "$1" && pwd)" # Dir to analyze
-
-    find-modules
-    packages
-    usages
-    dependency-tree
-    # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$INCLUDE":/{print}" 
-    mvn-deps
-}
 
 [ -n "$TESTMODE" ] && return
 
