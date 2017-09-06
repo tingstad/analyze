@@ -1,13 +1,12 @@
 #!/bin/bash
 set -o errexit
 
-INCLUDE="*" # Maven artifact include pattern
 
 # Work Dir
 WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 main() {
-    local includes="*"
+    local includes=""
     while getopts ":hi:" opt; do
         case $opt in
             h)
@@ -40,7 +39,7 @@ main() {
     packages
     usages
     dependency_tree
-    # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$INCLUDE":/{print}" 
+    # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$includes":/{print}" 
     mvn_deps
 }
 
@@ -212,10 +211,11 @@ mvneval() {
 }
 
 dependency_tree() {
+    local includes="${1-*}"
     echo "dependency tree"
     cut -f 3,4 "$WD/modules.tab" \
         | while read pom base ;do
-            (cd "$base" && mvn -B -q dependency:tree -Dincludes="$INCLUDE" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true)
+            (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true)
         done
 }
 
