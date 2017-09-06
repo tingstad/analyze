@@ -8,7 +8,11 @@ WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 main() {
     if [ -z "$1" -o ! -d "$1" ]; then
-        echo "Usage: "$0" DIR" >&2
+        cat <<- EOF >&2
+			Usage: $0 [OPTION...] DIR
+			
+			-h    help
+		EOF
         exit 1
     fi
     TARGET_DIR="$(cd "$1" && pwd)" # Dir to analyze

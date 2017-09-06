@@ -63,12 +63,6 @@ testUsages() {
     assertEquals '' "$(echo -e "id1\tid2\t1\nid2\tid1\t1" | sort)" "$(cat "$WD/deps.tsv" | sort)"
 }
 
-testNoParameters() {
-    local out="$(main 2>&1)"
-
-    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | cut -d' ' -f1)"
-}
-
 testUsages2() {
     local src1="$(mktemp -d)"
     mkdir -p "$src1/src/com/foo/package2" 
@@ -99,16 +93,33 @@ testUsages2() {
     assertEquals '' "$(echo -e "id1\tid2\t1" | sort)" "$(cat "$WD/deps.tsv" | sort)"
 }
 
+testNoParameters() {
+    local out="$(main 2>&1)"
+
+    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | head -n1 | cut -d' ' -f1)"
+}
+
 testNotExistingTargetArgument() {
     local out="$(main doesNotExist 2>&1)"
 
-    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | cut -d' ' -f1)"
+    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | head -n1 | cut -d' ' -f1)"
 }
 
 testFileTargetArgument() {
     local out="$(main <(echo 'file') 2>&1)"
 
-    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | cut -d' ' -f1)"
+    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | head -n1 | cut -d' ' -f1)"
+}
+
+testArgumentHelp() {
+    local out="$(main -h 2>&1)"
+
+    read -r -d '' expected <<- EOF
+		Usage: $0 [OPTION...] DIR
+		
+		-h    help
+	EOF
+    assertEquals 'Should print usage' "$expected" "$(echo "$out")"
 }
 
 testArtifactIdFromSimplePom() {
