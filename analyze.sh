@@ -34,9 +34,9 @@ main() {
     if [ -z "$1" -o ! -d "$1" ]; then
         print_usage_and_exit
     fi
-    TARGET_DIR="$(cd "$1" && pwd)" # Dir to analyze
+    local target_dir="$(cd "$1" && pwd)" # Dir to analyze
 
-    find_modules
+    find_modules "$target_dir"
     packages
     usages
     dependency_tree
@@ -54,6 +54,7 @@ print_usage_and_exit() {
 }
 
 find_modules() {
+    local target_dir="$1"
     local outfile="$WD/modules.tab"
     if [ -f "$outfile" ]; then
         echo "Using cached file: $outfile"
@@ -62,7 +63,7 @@ find_modules() {
         return
     fi
     echo -n "" > "$outfile"
-    find "$TARGET_DIR" -name pom.xml -type f -print0 \
+    find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
         echo -n "Found module $f"
         local pkg="$(mvneval $f project.packaging)"

@@ -84,7 +84,7 @@ testFindOneModule() {
 		</project>
 	EOF
 
-    find_modules
+    find_modules "$dir"
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources
