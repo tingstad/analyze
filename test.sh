@@ -4,11 +4,11 @@
 testPackageDetection() {
     local src1="$(mktemp -d)"
     mkdir -p "$src1/com/foo/package1" 
-    mkdir -p "$src1/com/foo/package2" 
     mkdir -p "$src1/com/foo/package2/bar" 
     mkdir -p "$src1/com/foo/package3/detail" 
     local src2="$(mktemp -d)"
     mkdir -p "$src2/com/foo/package1" 
+    mkdir -p "$src2/com/foo/package3" 
     mkdir -p "$src2/com/foo/package4" 
     WD="$src1"
     TARGET_DIR="$src1"
@@ -20,13 +20,13 @@ testPackageDetection() {
     assertTrue '' "[ -f "$WD/packages-modules.tsv" ]"
     read -r -d '' expected <<- TIL
 		com.foo.package2	id1
-		com.foo.package3	id1
+		com.foo.package3.detail	id1
 		com.foo.package4	id2
 	TIL
     assertEquals '' "$expected" "$(cat "$WD/packages-modules.tsv")"
     read -r -d '' expected <<- TIL
 		com.foo.package2
-		com.foo.package3
+		com.foo.package3.detail
 		com.foo.package4
 	TIL
     assertEquals '' "$expected" "$(cat "$src1/packages.txt")"
