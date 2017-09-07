@@ -11,7 +11,6 @@ testPackageDetection() {
     mkdir -p "$src2/com/foo/package3" 
     mkdir -p "$src2/com/foo/package4" 
     WD="$src1"
-    TARGET_DIR="$src1"
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$WD/modules.tab"
     echo -e "id2\tjar\tpom.xml\t$src2\t$src2\t$src2" >>"$WD/modules.tab"
 
@@ -38,7 +37,6 @@ testUsages() {
     local src2="$(mktemp -d)"
     mkdir -p "$src2/src/com/foo/package4" 
     WD="$src1"
-    TARGET_DIR="$src1"
     echo -e "package com.foo.package2;\nimport com.foo.package4.Two;public class One{} " \
         > "$src1/src/com/foo/package2/One.java"
     echo -e "package com.foo.package4;\nimport com.foo.package2.One;public class Two{} " \
@@ -69,7 +67,6 @@ testUsages2() {
     local src2="$(mktemp -d)"
     mkdir -p "$src2/src/com/foo/package4" 
     WD="$src1"
-    TARGET_DIR="$src1"
     echo -e "package com.foo.package2;\nimport com.foo.package4.Two;public class One{} " \
         > "$src1/src/com/foo/package2/One.java"
     echo -e "package com.foo.package4;\npublic class Two{} " \

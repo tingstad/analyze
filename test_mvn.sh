@@ -4,9 +4,8 @@ testMvnDependencyTreeOneSimpleModule() {
     local dir="$(mktemp -d)"
     mkdir -p "$dir"
     WD="$dir"
-    TARGET_DIR="$dir"
     echo -e "id1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src" > "$WD/modules.tab"
-    cat <<- EOF > "$TARGET_DIR/pom.xml"
+    cat <<- EOF > "$WD/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
 		    <groupId>g</groupId>
@@ -31,7 +30,6 @@ testMvnDependencyTreeTwoModules() {
     mkdir -p "$base1/src/main/java"
     mkdir -p "$base2/src/main/java"
     WD="$dir"
-    TARGET_DIR="$dir"
     echo -e "id1\tjar\tpom.xml\t${base1}\t${base1}/src\t${base1}/src\n" \
             "id2\tjar\tpom.xml\t${base2}\t${base2}/src\t${base2}/src" \
         > "$WD/modules.tab"
@@ -74,7 +72,6 @@ testFindOneModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     WD="$dir"
-    TARGET_DIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
