@@ -31,6 +31,21 @@ testPackageDetection() {
     assertEquals '' "$expected" "$(cat "$src1/packages.txt")"
 }
 
+xtestPackageDetectionSingleModule() {
+    local src1="$(mktemp -d)"
+    mkdir -p "$src1/com/foo/package1" 
+    mkdir -p "$src1/com/foo/package2/bar" 
+    WD="$src1"
+    echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$WD/modules.tab"
+
+    packages
+
+    read -r -d '' expected <<- TIL
+		com.foo	id1
+	TIL
+    assertEquals '' "$expected" "$(cat "$WD/packages-modules.tsv")"
+}
+
 testUsages() {
     local src1="$(mktemp -d)"
     mkdir -p "$src1/src/com/foo/package2" 

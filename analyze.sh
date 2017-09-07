@@ -146,7 +146,7 @@ packages() {
                 # keep only deepest packages
                 for (k in map){ 
                     c=k;
-                    while(c in map){
+                    while(c in map){ #TODO loop error here?
                         i=c;
                         gsub(/\/[^\/]*$/,"",c);
                     }
