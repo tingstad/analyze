@@ -228,7 +228,7 @@ mvneval() {
 dependency_tree() {
     local includes="$1"
     echo "dependency tree"
-    rm "$WD/mvn.dot" || true
+    rm "$WD/mvn.dot" 2>/dev/null || true
     cut -f 3,4 "$WD/modules.tab" \
         | while read pom base ;do
             (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true)
