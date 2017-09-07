@@ -114,14 +114,14 @@ testNotExistingTargetArgument() {
 }
 
 testArgumentHelp() {
-    local out="$(main -h 2>&1)"
+    local out="$(main -h)"
 
     read -r -d '' expected <<- EOF
 		Usage: $0 [OPTION...] DIR
 		
 		  -h    help
 	EOF
-    assertEquals 'Should print usage' "$expected" "$(echo "$out")"
+    assertEquals "$expected" "$out"
 }
 
 testArgumentUnknown() {
@@ -130,10 +130,8 @@ testArgumentUnknown() {
     read -r -d '' expected <<- EOF
 		Invalid option: -x
 		Usage: $0 [OPTION...] DIR
-		
-		  -h    help
 	EOF
-    assertEquals "$expected" "$(echo "$out")"
+    assertEquals "$expected" "$(echo "$out" | head -n2)"
 }
 
 testArgumentWithoutRequiredParameter() {

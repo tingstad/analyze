@@ -10,7 +10,7 @@ main() {
     while getopts ":hi:" opt; do
         case $opt in
             h)
-                print_usage_and_exit
+                print_usage_and_exit 0
                 ;;
             i)
                 includes="$OPTARG"
@@ -48,12 +48,21 @@ main() {
 }
 
 print_usage_and_exit() {
-        cat <<- EOF >&2
-			Usage: $0 [OPTION...] DIR
-			
-			  -h    help
-		EOF
-        exit 1
+    local exit_code=${1-1}
+    if [ $exit_code -eq 0 ]; then
+        print_usage
+    else
+        print_usage >&2
+    fi
+    exit $exit_code
+}
+
+print_usage() {
+    cat <<- EOF
+		Usage: $0 [OPTION...] DIR
+		
+		  -h    help
+	EOF
 }
 
 find_modules() {
