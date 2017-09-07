@@ -88,22 +88,22 @@ find_modules() {
         local base="$(mvneval "$f" project.basedir)"
         local src="$(mvneval "$f" project.build.sourceDirectory)"
         local resources="$(mvneval "$f" project.build.resources[0].directory)"
-        local id="$(artifact-id "$f")"
+        local id="$(artifact_id "$f")"
         echo " - $id" 
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}" \
             >> "$outfile"
     done
 }
 
-artifact-id() {
+artifact_id() {
     local f="$1"
     local o="$WD/effective-pom.xml"
     mvn -B -q -f "$f" org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom -Doutput="$o"
     cat "$o" \
-        | artifact-id-from-pom
+        | artifact_id_from_pom
 }
 
-artifact-id-from-pom() {
+artifact_id_from_pom() {
     sed '/<parent>/,/<\/parent>/d' \
         | awk '
             function content(tag) {

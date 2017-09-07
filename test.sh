@@ -179,7 +179,7 @@ testArgumentsSuperflousWithOption() {
 }
 
 testArtifactIdFromSimplePom() {
-    actual=$(cat <<- EOF | artifact-id-from-pom 
+    actual=$(cat <<- EOF | artifact_id_from_pom 
 		<project xmlns="http://maven.apache.org/POM/4.0.0">
 		    <modelVersion>4.0.0</modelVersion>
 		    <groupId>g</groupId>
@@ -193,7 +193,7 @@ testArtifactIdFromSimplePom() {
 }
 
 testArtifactIdFromPom() {
-    actual=$(cat <<- EOF | artifact-id-from-pom
+    actual=$(cat <<- EOF | artifact_id_from_pom
 		<project xmlns="http://maven.apache.org/POM/4.0.0">
 		    <modelVersion>4.0.0</modelVersion>
 		    <groupId>g</groupId>
