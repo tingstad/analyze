@@ -1,7 +1,6 @@
 #!/bin/bash
 set -o errexit
 
-
 # Work Dir
 WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -143,12 +142,13 @@ packages() {
                     if(length(v)>1) 
                         delete map[k];
                 }
-                # keep only deepest packages
+                # keep only broadest packages
                 for (k in map){ 
                     c=k;
-                    while(c in map){ #TODO loop error here?
+                    while(c in map){
                         i=c;
                         gsub(/\/[^\/]*$/,"",c);
+                        if (i == c) break;
                     }
                     map2[i]=map[k];
                 }

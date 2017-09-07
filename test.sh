@@ -31,7 +31,7 @@ testPackageDetection() {
     assertEquals '' "$expected" "$(cat "$src1/packages.txt")"
 }
 
-xtestPackageDetectionSingleModule() {
+testPackageDetectionSingleModule() {
     local src1="$(mktemp -d)"
     mkdir -p "$src1/com/foo/package1" 
     mkdir -p "$src1/com/foo/package2/bar" 
@@ -41,7 +41,7 @@ xtestPackageDetectionSingleModule() {
     packages
 
     read -r -d '' expected <<- TIL
-		com.foo	id1
+		com	id1
 	TIL
     assertEquals '' "$expected" "$(cat "$WD/packages-modules.tsv")"
 }
