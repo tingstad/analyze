@@ -119,7 +119,9 @@ testArgumentHelp() {
     read -r -d '' expected <<- EOF
 		Usage: $0 [OPTION...] DIR
 		
-		  -h    help
+		  -h            Help
+		  -i pattern    Filter dependencies using pattern. Syntax is
+		                [groupId]:[artifactId]:[type]:[version]
 	EOF
     assertEquals "$expected" "$out"
 }

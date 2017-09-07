@@ -42,7 +42,7 @@ main() {
     find_modules "$target_dir"
     packages
     usages
-    dependency_tree
+    dependency_tree "${includes:-*}"
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$includes":/{print}" 
     mvn_deps
 }
@@ -61,7 +61,9 @@ print_usage() {
     cat <<- EOF
 		Usage: $0 [OPTION...] DIR
 		
-		  -h    help
+		  -h            Help
+		  -i pattern    Filter dependencies using pattern. Syntax is
+		                [groupId]:[artifactId]:[type]:[version]
 	EOF
 }
 
@@ -224,8 +226,9 @@ mvneval() {
 }
 
 dependency_tree() {
-    local includes="${1-*}"
+    local includes="$1"
     echo "dependency tree"
+    rm "$WD/mvn.dot" || true
     cut -f 3,4 "$WD/modules.tab" \
         | while read pom base ;do
             (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true)
