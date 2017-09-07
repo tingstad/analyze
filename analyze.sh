@@ -30,7 +30,11 @@ main() {
         print_usage_and_exit
     fi
     shift $((OPTIND-1))
-    if [ -z "$1" -o ! -d "$1" ]; then
+    if [ -z "$1" ]; then
+        echo "Missing target dir parameter"
+        print_usage_and_exit
+    elif [ ! -d "$1" ]; then
+        echo "'$1' is not a directory" >&2
         print_usage_and_exit
     fi
     local target_dir="$(cd "$1" && pwd)" # Dir to analyze

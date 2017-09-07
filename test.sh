@@ -96,19 +96,21 @@ testUsages2() {
 testNoParameters() {
     local out="$(main 2>&1)"
 
-    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | head -n1 | cut -d' ' -f1)"
+    read -r -d '' expected <<- EOF
+		Missing target dir parameter
+		Usage: $0 [OPTION...] DIR
+	EOF
+    assertEquals "$expected" "$(echo "$out" | head -n2)"
 }
 
 testNotExistingTargetArgument() {
     local out="$(main doesNotExist 2>&1)"
 
-    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | head -n1 | cut -d' ' -f1)"
-}
-
-testFileTargetArgument() {
-    local out="$(main <(echo 'file') 2>&1)"
-
-    assertEquals 'Should print usage' "Usage:" "$(echo "$out" | head -n1 | cut -d' ' -f1)"
+    read -r -d '' expected <<- EOF
+		'doesNotExist' is not a directory
+		Usage: $0 [OPTION...] DIR
+	EOF
+    assertEquals "$expected" "$(echo "$out" | head -n2)"
 }
 
 testArgumentHelp() {
