@@ -74,15 +74,10 @@ find_modules() {
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
         echo -n "Found module $f"
-        local pkg="$(mvneval "$f" project.packaging)"
-        if [ "$pkg" = "pom" ]; then
-            echo " - packaging pom, skipping..."
-            continue
-        fi
         touch "$newfile"
-        echo -n " - packaging $pkg"
-        local id="$(artifact_id "$f")"
-        local fingerprint=$(fingerprint "$f")
+        local id_and_fp="$(id_and_fingerprint "$f")"
+        local id="$(echo "$id_and_fp" | cut -f 1)"
+        local fingerprint="$(echo "$id_and_fp" | cut -f 2)"
         local existing=$(awk "\$1 == \"$id\" { print \$7 }" "$outfile" 2>/dev/null || echo "na")
         if [ $fingerprint = "$existing" ]; then
             echo " - $id" 
@@ -90,6 +85,14 @@ find_modules() {
         else
             [ -f "$outfile" ] && sed -i "/^$id\t/d" "$outfile"
         fi
+        local pkg="$(mvneval "$f" project.packaging)"
+        if [ "$pkg" = "pom" ]; then
+            echo " - packaging pom, skipping..."
+            echo -e "${id}\t${pkg}\t${f}\tn/a\tn/a\tn/a\t${fingerprint}" \
+                >> "$outfile"
+            continue
+        fi
+        echo -n " - packaging $pkg"
         local base="$(mvneval "$f" project.basedir)"
         local src="$(mvneval "$f" project.build.sourceDirectory)"
         local resources="$(mvneval "$f" project.build.resources[0].directory)"
@@ -103,7 +106,9 @@ find_modules() {
 }
 
 fingerprint() {
-    effective_pom "$1" | md5sum | cut -d ' ' -f 1
+    local e="$WD/effective-pom.xml"
+    effective_pom "$1" > "$e"
+    cat "$e" | md5sum | cut -d ' ' -f 1
 }
 
 error() {
@@ -123,6 +128,14 @@ line_count() {
     else
         echo "0"
     fi
+}
+
+id_and_fingerprint() {
+    local e="$WD/effective-pom.xml"
+    effective_pom "$1" > "$e"
+    local id="$(cat "$e" | artifact_id_from_pom)"
+    local fp="$(cat "$e" | md5sum | cut -d ' ' -f 1)"
+    echo -e "$id\t$fp"
 }
 
 artifact_id() {
@@ -156,7 +169,7 @@ packages() {
     echo -n "" > "$WD/packages-modules.tsv"
 
     # 1: id, 5: src
-    cut -f 1,5 "$WD/modules.tab" \
+    for_modules | cut -f 1,5 \
     | while read id src ;do
         if [ ! -d "$src" ]; then
             continue
@@ -207,7 +220,7 @@ usages() {
     local outfile="$WD/deps-detailed.tsv"
     echo -n "" > "$outfile"
 
-    cut -f 1,4,5,6 "$WD/modules.tab" \
+    for_modules | cut -f 1,4,5,6 \
     | while read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
             -exec fgrep --color=never --binary-files=without-match -H -o -f "$WD/packages.txt" {} \; \
@@ -263,10 +276,14 @@ dependency_tree() {
     local includes="$1"
     echo "dependency tree"
     rm "$WD/mvn.dot" 2>/dev/null || true
-    cut -f 3,4 "$WD/modules.tab" \
+    for_modules | cut -f 3,4 \
         | while read pom base ;do
             (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true)
         done
+}
+
+for_modules() {
+    awk '$2 != "pom"' "$WD/modules.tab"
 }
 
 # reads mvn.dot and deps.tsv
