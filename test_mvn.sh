@@ -84,7 +84,30 @@ testFindOneModule() {
     find_modules "$dir"
 
     read -r -d '' expected <<- EOF
-		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources
+		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
+	EOF
+    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+}
+
+testFindUnchangedModule() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module1"
+    mkdir -p "$base1/src/main/java"
+    WD="$dir"
+    cat <<- EOF > "$base1/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>a</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+
+    find_modules "$dir"
+    find_modules "$dir"
+
+    read -r -d '' expected <<- EOF
+		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
 	EOF
     assertEquals "${expected}" "$(cat "$WD/modules.tab")"
 }

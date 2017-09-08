@@ -69,31 +69,44 @@ print_usage() {
 find_modules() {
     local target_dir="$1"
     local outfile="$WD/modules.tab"
-    if [ -f "$outfile" ] && ! is_empty "$outfile" ; then
-        echo "Using cached file: $outfile"
+    local newfile="$WD/modules_new.tab"
+    #if [ -f "$outfile" ] && ! is_empty "$outfile" ; then
+    #    echo "Using cached file: $outfile"
         # TODO check hash of mvn org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom
         # to increase performance
-        return
-    fi
-    echo -n "" > "$outfile"
+    #    return
+    #fi
+    local modules=$(line_count "$outfile")
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
         echo -n "Found module $f"
-        local pkg="$(mvneval $f project.packaging)"
+        local pkg="$(mvneval "$f" project.packaging)"
         if [ "$pkg" = "pom" ]; then
             echo " - packaging pom, skipping..."
-            continue;
+            continue
         fi
         echo -n " - packaging $pkg"
+        local id="$(artifact_id "$f")"
+        local fingerprint=$(fingerprint "$f")
+        local existing=$(awk "\$1 == \"$id\" { print \$7 }" "$outfile" 2>/dev/null || echo "na")
+        if [ $fingerprint = $existing ];then
+            continue
+        else
+            [ -f "$outfile" ] && sed -i "/^$id\t/d" "$outfile"
+        fi
         local base="$(mvneval "$f" project.basedir)"
         local src="$(mvneval "$f" project.build.sourceDirectory)"
         local resources="$(mvneval "$f" project.build.resources[0].directory)"
-        local id="$(artifact_id "$f")"
         echo " - $id" 
-        echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}" \
-            >> "$outfile"
+        echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
+            >> "$newfile"
     done
-    is_empty "$outfile" && error "No modules (pom.xml files) found"
+    is_empty "$newfile" && error "No modules (pom.xml files) found"
+    cat "$newfile" >> "$outfile"
+}
+
+fingerprint() {
+    effective_pom "$f" | md5sum | cut -d ' ' -f 1
 }
 
 error() {
@@ -102,16 +115,29 @@ error() {
 }
 
 is_empty() {
-    local lines="$(wc -l "$1" | cut -d ' ' -f 1)"
+    local lines=$(line_count "$1")
     [ "$lines" -eq "0" ]
 }
 
+line_count() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        wc -l "$file" | cut -d ' ' -f 1
+    else
+        echo "0"
+    fi
+}
+
 artifact_id() {
+    effective_pom "$1" \
+        | artifact_id_from_pom
+}
+
+effective_pom() {
     local f="$1"
     local o="$WD/effective-pom.xml"
     mvn -B -q -f "$f" org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom -Doutput="$o"
-    cat "$o" \
-        | artifact_id_from_pom
+    sed '/<!--/d' "$o"
 }
 
 artifact_id_from_pom() {
