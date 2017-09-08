@@ -4,7 +4,8 @@ testMvnDependencyTreeOneSimpleModule() {
     local dir="$(mktemp -d)"
     mkdir -p "$dir"
     WD="$dir"
-    echo -e "id1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src" > "$WD/modules.tab"
+    echo -e "id1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src" \
+        > "$WD/modules.tab"
     cat <<- EOF > "$WD/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
@@ -81,9 +82,33 @@ testFindOneModule() {
 		</project>
 	EOF
 
-    find_modules "$dir"
+    find_modules "$dir" >/dev/null
 
     read -r -d '' expected <<- EOF
+		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
+	EOF
+    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+}
+
+testFindNewModule() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module1"
+    mkdir -p "$base1/src/main/java"
+    WD="$dir"
+    cat <<- EOF > "$base1/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>a</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+    echo -e "id2\tjar\tpom.xml\tBASE\tSRC\tRESRC\tHASH" > "$WD/modules.tab"
+
+    find_modules "$dir" >/dev/null
+
+    read -r -d '' expected <<- EOF
+		id2	jar	pom.xml	BASE	SRC	RESRC	HASH
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
 	EOF
     assertEquals "${expected}" "$(cat "$WD/modules.tab")"
@@ -102,9 +127,33 @@ testFindUnchangedModule() {
 		    <version>1</version>
 		</project>
 	EOF
+    echo -e "g:a:1\tjar\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$WD/modules.tab"
 
-    find_modules "$dir"
-    find_modules "$dir"
+    find_modules "$dir" >/dev/null
+
+    read -r -d '' expected <<- EOF
+		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
+	EOF
+    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+}
+
+testFindChangedModule() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module1"
+    mkdir -p "$base1/src/main/java"
+    WD="$dir"
+    cat <<- EOF > "$base1/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>a</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+    echo -e "g:a:1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src\tDIFFERENT" \
+        > "$WD/modules.tab"
+
+    find_modules "$dir" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")

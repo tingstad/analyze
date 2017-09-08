@@ -70,13 +70,7 @@ find_modules() {
     local target_dir="$1"
     local outfile="$WD/modules.tab"
     local newfile="$WD/modules_new.tab"
-    #if [ -f "$outfile" ] && ! is_empty "$outfile" ; then
-    #    echo "Using cached file: $outfile"
-        # TODO check hash of mvn org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom
-        # to increase performance
-    #    return
-    #fi
-    local modules=$(line_count "$outfile")
+    rm "$newfile" 2>/dev/null || true
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
         echo -n "Found module $f"
@@ -85,11 +79,13 @@ find_modules() {
             echo " - packaging pom, skipping..."
             continue
         fi
+        touch "$newfile"
         echo -n " - packaging $pkg"
         local id="$(artifact_id "$f")"
         local fingerprint=$(fingerprint "$f")
         local existing=$(awk "\$1 == \"$id\" { print \$7 }" "$outfile" 2>/dev/null || echo "na")
-        if [ $fingerprint = $existing ];then
+        if [ $fingerprint = "$existing" ]; then
+            echo " - $id" 
             continue
         else
             [ -f "$outfile" ] && sed -i "/^$id\t/d" "$outfile"
@@ -99,14 +95,15 @@ find_modules() {
         local resources="$(mvneval "$f" project.build.resources[0].directory)"
         echo " - $id" 
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
-            >> "$newfile"
+            >> "$outfile"
     done
-    is_empty "$newfile" && error "No modules (pom.xml files) found"
-    cat "$newfile" >> "$outfile"
+    if [ ! -f "$newfile" ]; then
+        error "No modules (pom.xml files) found"
+    fi
 }
 
 fingerprint() {
-    effective_pom "$f" | md5sum | cut -d ' ' -f 1
+    effective_pom "$1" | md5sum | cut -d ' ' -f 1
 }
 
 error() {
