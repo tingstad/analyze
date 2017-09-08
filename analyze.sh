@@ -69,7 +69,7 @@ print_usage() {
 find_modules() {
     local target_dir="$1"
     local outfile="$WD/modules.tab"
-    if [ -f "$outfile" ]; then
+    if [ -f "$outfile" ] && ! is_empty "$outfile" ; then
         echo "Using cached file: $outfile"
         # TODO check hash of mvn org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom
         # to increase performance
@@ -93,6 +93,17 @@ find_modules() {
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}" \
             >> "$outfile"
     done
+    is_empty "$outfile" && error "No modules (pom.xml files) found"
+}
+
+error() {
+    echo "$1" >&2
+    exit ${2-1}
+}
+
+is_empty() {
+    local lines="$(wc -l "$1" | cut -d ' ' -f 1)"
+    [ "$lines" -eq "0" ]
 }
 
 artifact_id() {

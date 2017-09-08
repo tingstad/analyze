@@ -148,6 +148,16 @@ testArgumentUnknown() {
     assertEquals "$expected" "$(echo "$out" | head -n2)"
 }
 
+testArgumentNotDirectory() {
+    local out="$(main 'file' 2>&1)"
+
+    read -r -d '' expected <<- EOF
+		'file' is not a directory
+		Usage: $0 [OPTION...] DIR
+	EOF
+    assertEquals "$expected" "$(echo "$out" | head -n2)"
+}
+
 testArgumentWithoutRequiredParameter() {
     local out="$(main -i 2>&1)"
 
@@ -176,6 +186,14 @@ testArgumentsSuperflousWithOption() {
 		Usage: $0 [OPTION...] DIR
 	EOF
     assertEquals "$expected" "$(echo "$out" | head -n2)"
+}
+
+testNoModulesFound() {
+    local dir="$(mktemp -d)"
+    WD="$dir"
+    local out="$(main "$dir" 2>&1)"
+
+    assertEquals "No modules (pom.xml files) found" "$out"
 }
 
 testArtifactIdFromSimplePom() {
