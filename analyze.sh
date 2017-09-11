@@ -80,6 +80,8 @@ find_modules() {
         #[ -f "$outfile ] || touch "$outfile"
         #while [ 
         echo -n "Found module $f"
+        #[ -f "$outfile ] || touch "$outfile"
+        #while [ 
         touch "$newfile"
         local id_and_fp="$(id_and_fingerprint "$f")"
         local id="$(echo "$id_and_fp" | cut -f 1)"
