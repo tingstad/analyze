@@ -134,6 +134,7 @@ testArgumentHelp() {
 		  -h            Help
 		  -i pattern    Filter dependencies using pattern. Syntax is
 		                [groupId]:[artifactId]:[type]:[version]
+		  -o filename   Write output to file
 	EOF
     assertEquals "$expected" "$out"
 }
@@ -158,11 +159,21 @@ testArgumentNotDirectory() {
     assertEquals "$expected" "$(echo "$out" | head -n2)"
 }
 
-testArgumentWithoutRequiredParameter() {
+testArgumentiWithoutRequiredParameter() {
     local out="$(main -i 2>&1)"
 
     read -r -d '' expected <<- EOF
 		Option -i requires an argument
+		Usage: $0 [OPTION...] DIR
+	EOF
+    assertEquals "$expected" "$(echo "$out" | head -n2)"
+}
+
+testArgumentoWithoutRequiredParameter() {
+    local out="$(main -o 2>&1)"
+
+    read -r -d '' expected <<- EOF
+		Option -o requires an argument
 		Usage: $0 [OPTION...] DIR
 	EOF
     assertEquals "$expected" "$(echo "$out" | head -n2)"

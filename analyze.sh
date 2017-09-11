@@ -5,23 +5,15 @@ set -o errexit
 WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 main() {
-    local includes=""
-    while getopts ":hi:" opt; do
+    while getopts ":hi:o:" opt; do
         case $opt in
-            h)
-                print_usage_and_exit 0
-                ;;
-            i)
-                includes="$OPTARG"
-                ;;
-            \?)
-                echo "Invalid option: -$OPTARG" >&2
-                print_usage_and_exit
-                ;;
-            :)
-                echo "Option -$OPTARG requires an argument" >&2
-                print_usage_and_exit
-                ;;
+            h) print_usage_and_exit 0 ;;
+            i) includes="$OPTARG" ;;
+            o) outputfile="$OPTARG" ;;
+            \?)echo "Invalid option: -$OPTARG" >&2
+               print_usage_and_exit ;;
+            :) echo "Option -$OPTARG requires an argument" >&2
+               print_usage_and_exit ;;
         esac
     done
     if [ $[ $# - $OPTIND ] -gt 0 ]; then
@@ -43,7 +35,11 @@ main() {
     usages
     dependency_tree "${includes:-*}"
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$includes":/{print}" 
-    mvn_deps
+    if [ -n "$outputfile" ]; then
+        mvn_deps > "$outputfile"
+    else
+        mvn_deps
+    fi
 }
 
 print_usage_and_exit() {
@@ -63,6 +59,7 @@ print_usage() {
 		  -h            Help
 		  -i pattern    Filter dependencies using pattern. Syntax is
 		                [groupId]:[artifactId]:[type]:[version]
+		  -o filename   Write output to file
 	EOF
 }
 
