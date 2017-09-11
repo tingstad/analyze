@@ -73,11 +73,12 @@ print_usage() {
 find_modules() {
     local target_dir="$1"
     local outfile="$WD/modules.tab"
-    local newfile="$WD/modules_new.tab"
-    rm "$newfile" 2>/dev/null || true
+    local time=$(date +%s)
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
         echo -n "Found module $f" >&3
+        #[ -f "$outfile ] || touch "$outfile"
+        #while [ 
         touch "$newfile"
         local id_and_fp="$(id_and_fingerprint "$f")"
         local id="$(echo "$id_and_fp" | cut -f 1)"
@@ -110,9 +111,7 @@ find_modules() {
 }
 
 fingerprint() {
-    local e="$WD/effective-pom.xml"
-    effective_pom "$1" > "$e"
-    cat "$e" | md5sum | cut -d ' ' -f 1
+    id_and_fingerprint | cut -f 2
 }
 
 error() {
@@ -138,8 +137,12 @@ id_and_fingerprint() {
     local e="$WD/effective-pom.xml"
     effective_pom "$1" > "$e"
     local id="$(cat "$e" | artifact_id_from_pom)"
-    local fp="$(cat "$e" | md5sum | cut -d ' ' -f 1)"
+    local fp="$(cat "$e" | digest | cut -d ' ' -f 1)"
     echo -e "$id\t$fp"
+}
+
+digest() {
+    md5sum 2>/dev/null || md5 -r
 }
 
 artifact_id() {
