@@ -5,11 +5,12 @@ set -o errexit
 WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 main() {
-    while getopts ":hi:o:" opt; do
+    while getopts ":hi:o:q" opt; do
         case $opt in
             h) print_usage_and_exit 0 ;;
             i) includes="$OPTARG" ;;
             o) outputfile="$OPTARG" ;;
+            q) quiet=1 ;;
             \?)echo "Invalid option: -$OPTARG" >&2
                print_usage_and_exit ;;
             :) echo "Option -$OPTARG requires an argument" >&2
@@ -22,13 +23,18 @@ main() {
     fi
     shift $((OPTIND-1))
     if [ -z "$1" ]; then
-        echo "Missing target dir parameter"
+        echo "Missing target dir parameter" >&2
         print_usage_and_exit
     elif [ ! -d "$1" ]; then
         echo "'$1' is not a directory" >&2
         print_usage_and_exit
     fi
     local target_dir="$(cd "$1" && pwd)" # Dir to analyze
+    if [ -n "$quiet" ]; then
+        exec 3>/dev/null
+    else
+        exec 3>&1
+    fi
 
     find_modules "$target_dir"
     packages
@@ -60,6 +66,7 @@ print_usage() {
 		  -i pattern    Filter dependencies using pattern. Syntax is
 		                [groupId]:[artifactId]:[type]:[version]
 		  -o filename   Write output to file
+		  -q            Quiet
 	EOF
 }
 
@@ -70,30 +77,30 @@ find_modules() {
     rm "$newfile" 2>/dev/null || true
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
-        echo -n "Found module $f"
+        echo -n "Found module $f" >&3
         touch "$newfile"
         local id_and_fp="$(id_and_fingerprint "$f")"
         local id="$(echo "$id_and_fp" | cut -f 1)"
         local fingerprint="$(echo "$id_and_fp" | cut -f 2)"
         local existing=$(awk "\$1 == \"$id\" { print \$7 }" "$outfile" 2>/dev/null || echo "na")
         if [ $fingerprint = "$existing" ]; then
-            echo " - $id" 
+            echo " - $id" >&3
             continue
         else
             [ -f "$outfile" ] && sed -i "/^$id\t/d" "$outfile"
         fi
         local pkg="$(mvneval "$f" project.packaging)"
         if [ "$pkg" = "pom" ]; then
-            echo " - packaging pom, skipping..."
+            echo " - packaging pom, skipping..." >&3
             echo -e "${id}\t${pkg}\t${f}\tn/a\tn/a\tn/a\t${fingerprint}" \
                 >> "$outfile"
             continue
         fi
-        echo -n " - packaging $pkg"
+        echo -n " - packaging $pkg" >&3
         local base="$(mvneval "$f" project.basedir)"
         local src="$(mvneval "$f" project.build.sourceDirectory)"
         local resources="$(mvneval "$f" project.build.resources[0].directory)"
-        echo " - $id" 
+        echo " - $id" >&3
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
             >> "$outfile"
     done
@@ -161,7 +168,7 @@ artifact_id_from_pom() {
 }
 
 packages() {
-    echo "Finding packages"
+    echo "Finding packages" >&3
     # Find unique packages for a module (others will be ignored)
     echo -n "" > "$WD/packages-modules.tsv"
 
@@ -212,7 +219,7 @@ packages() {
 }
 
 usages() {
-    echo "Finding usages"
+    echo "Finding usages" >&3
     # One line per apparent actual package dependency:
     local outfile="$WD/deps-detailed.tsv"
     echo -n "" > "$outfile"
@@ -271,7 +278,7 @@ mvneval() {
 
 dependency_tree() {
     local includes="$1"
-    echo "dependency tree"
+    echo "dependency tree" >&3
     rm "$WD/mvn.dot" 2>/dev/null || true
     for_modules | cut -f 3,4 \
         | while read pom base ;do
@@ -286,7 +293,7 @@ for_modules() {
 # reads mvn.dot and deps.tsv
 # to create result dot graph
 mvn_deps() {
-    echo "mvn deps"
+    echo "mvn deps" >&3
     echo 'digraph {' > "$WD/mvn-deps.dot"
     cat "$WD/mvn.dot" \
         | grep '" -> "' \

@@ -135,6 +135,7 @@ testArgumentHelp() {
 		  -i pattern    Filter dependencies using pattern. Syntax is
 		                [groupId]:[artifactId]:[type]:[version]
 		  -o filename   Write output to file
+		  -q            Quiet
 	EOF
     assertEquals "$expected" "$out"
 }
