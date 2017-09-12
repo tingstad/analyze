@@ -74,15 +74,9 @@ print_usage() {
 find_modules() {
     local target_dir="$1"
     local outfile="$WD/modules.tab"
-    local mod_time=$(uname | grep -q Darwin && echo "-f %m" || echo "-c %Y") #TODO
-    while [ -f "$outfile" ] && [ "$(stat $mod_time "$outfile")" -ge "$(date +%s)" ]; do
-        sleep 1
-    done
-    local time=$(date +%s)
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
         echo -n "Found module $f"
-        touch "$outfile"
         local id_and_fp="$(id_and_fingerprint "$f")"
         local id="$(echo "$id_and_fp" | cut -f 1)"
         local fingerprint="$(echo "$id_and_fp" | cut -f 2)"
@@ -107,14 +101,12 @@ find_modules() {
         echo " - $id"
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
             >> "$outfile"
-    done
-    if [ ! -f "$outfile" ] || [ "$(stat $mod_time "$outfile")" -le "$time" ]; then
-        error "No modules (pom.xml files) found"
-    fi
+    done | grep --color=never . \
+        || error "No modules (pom.xml files) found"
 }
 
 fingerprint() {
-    id_and_fingerprint | cut -f 2
+    id_and_fingerprint "$1" | cut -f 2
 }
 
 error() {
@@ -279,7 +271,7 @@ usages() {
 }
 
 mvneval() {
-    mvn -B -f "$1" org.apache.maven.plugins:maven-help-plugin:2.2:evaluate -Dexpression=$2 | grep -v '^\['
+    mvn -B -f "$1" org.apache.maven.plugins:maven-help-plugin:2.2:evaluate -Dexpression=$2 | grep --color=never -v '^\['
 }
 
 dependency_tree() {
@@ -301,13 +293,13 @@ for_modules() {
 mvn_deps() {
     echo 'digraph {' > "$WD/mvn-deps.dot"
     cat "$WD/mvn.dot" \
-        | grep '" -> "' \
+        | grep --color=never '" -> "' \
         | sort \
         | uniq \
         >> "$WD/mvn-deps.dot"
     echo '}' >> "$WD/mvn-deps.dot"
     cat "$WD/mvn-deps.dot" \
-        | grep '" -> "' \
+        | grep --color=never '" -> "' \
         | sed 's/\s*//g;s/->/\t/;s/"//g' \
         | awk 'BEGIN{
                 OFS="\t";
@@ -342,7 +334,6 @@ mvn_deps() {
                 print "}";
             }' 
 }
-
 
 [ -n "$TESTMODE" ] && return
 
