@@ -246,29 +246,6 @@ testArtifactIdFromPom() {
     assertEquals '' "g:a:1" "$actual"
 }
 
-testFindUnchangedModule() {
-    local dir="$(mktemp -d)"
-    local base1="$dir/module1"
-    mkdir -p "$base1/src/main/java"
-    WD="$dir"
-    cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		</project>
-	EOF
-    echo -e "g:a:1\tjar\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$WD/modules.tab"
-
-    find_modules "$dir" >/dev/null
-
-    read -r -d '' expected <<- EOF
-		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
-	EOF
-    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
-}
-
 DIR="$( dirname "$(pwd)/$0" )"
 TESTMODE="on"
 source "$DIR/analyze.sh"
