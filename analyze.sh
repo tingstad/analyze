@@ -36,11 +36,12 @@ main() {
         exec 3>&1
     fi
 
-    find_modules "$target_dir"
-    packages
-    usages
-    dependency_tree "${includes:-*}"
+    find_modules "$target_dir" >&3
+    packages >&3
+    usages >&3
+    dependency_tree "${includes:-*}" >&3
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$includes":/{print}" 
+    echo "mvn deps" >&3
     if [ -n "$outputfile" ]; then
         mvn_deps > "$outputfile"
     else
@@ -77,30 +78,30 @@ find_modules() {
     rm "$newfile" 2>/dev/null || true
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
-        echo -n "Found module $f" >&3
+        echo -n "Found module $f"
         touch "$newfile"
         local id_and_fp="$(id_and_fingerprint "$f")"
         local id="$(echo "$id_and_fp" | cut -f 1)"
         local fingerprint="$(echo "$id_and_fp" | cut -f 2)"
         local existing=$(awk "\$1 == \"$id\" { print \$7 }" "$outfile" 2>/dev/null || echo "na")
         if [ $fingerprint = "$existing" ]; then
-            echo " - $id" >&3
+            echo " - $id"
             continue
         else
             [ -f "$outfile" ] && sed -i "/^$id\t/d" "$outfile"
         fi
         local pkg="$(mvneval "$f" project.packaging)"
         if [ "$pkg" = "pom" ]; then
-            echo " - packaging pom, skipping..." >&3
+            echo " - packaging pom, skipping..."
             echo -e "${id}\t${pkg}\t${f}\tn/a\tn/a\tn/a\t${fingerprint}" \
                 >> "$outfile"
             continue
         fi
-        echo -n " - packaging $pkg" >&3
+        echo -n " - packaging $pkg"
         local base="$(mvneval "$f" project.basedir)"
         local src="$(mvneval "$f" project.build.sourceDirectory)"
         local resources="$(mvneval "$f" project.build.resources[0].directory)"
-        echo " - $id" >&3
+        echo " - $id"
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
             >> "$outfile"
     done
@@ -168,7 +169,7 @@ artifact_id_from_pom() {
 }
 
 packages() {
-    echo "Finding packages" >&3
+    echo "Finding packages"
     # Find unique packages for a module (others will be ignored)
     echo -n "" > "$WD/packages-modules.tsv"
 
@@ -219,7 +220,7 @@ packages() {
 }
 
 usages() {
-    echo "Finding usages" >&3
+    echo "Finding usages"
     # One line per apparent actual package dependency:
     local outfile="$WD/deps-detailed.tsv"
     echo -n "" > "$outfile"
@@ -278,7 +279,7 @@ mvneval() {
 
 dependency_tree() {
     local includes="$1"
-    echo "dependency tree" >&3
+    echo "dependency tree"
     rm "$WD/mvn.dot" 2>/dev/null || true
     for_modules | cut -f 3,4 \
         | while read pom base ;do
@@ -293,7 +294,6 @@ for_modules() {
 # reads mvn.dot and deps.tsv
 # to create result dot graph
 mvn_deps() {
-    echo "mvn deps" >&3
     echo 'digraph {' > "$WD/mvn-deps.dot"
     cat "$WD/mvn.dot" \
         | grep '" -> "' \
