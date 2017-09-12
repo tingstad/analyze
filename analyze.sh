@@ -74,12 +74,9 @@ print_usage() {
 find_modules() {
     local target_dir="$1"
     local outfile="$WD/modules.tab"
-    local newfile="$WD/modules_new.tab"
-    rm "$newfile" 2>/dev/null || true
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
         echo -n "Found module $f"
-        touch "$newfile"
         local id_and_fp="$(id_and_fingerprint "$f")"
         local id="$(echo "$id_and_fp" | cut -f 1)"
         local fingerprint="$(echo "$id_and_fp" | cut -f 2)"
@@ -104,16 +101,12 @@ find_modules() {
         echo " - $id"
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
             >> "$outfile"
-    done
-    if [ ! -f "$newfile" ]; then
-        error "No modules (pom.xml files) found"
-    fi
+    done | grep --color=never . \
+        || error "No modules (pom.xml files) found"
 }
 
 fingerprint() {
-    local e="$WD/effective-pom.xml"
-    effective_pom "$1" > "$e"
-    cat "$e" | md5sum | cut -d ' ' -f 1
+    id_and_fingerprint "$1" | cut -f 2
 }
 
 error() {
@@ -139,8 +132,12 @@ id_and_fingerprint() {
     local e="$WD/effective-pom.xml"
     effective_pom "$1" > "$e"
     local id="$(cat "$e" | artifact_id_from_pom)"
-    local fp="$(cat "$e" | md5sum | cut -d ' ' -f 1)"
+    local fp="$(cat "$e" | digest | cut -d ' ' -f 1)"
     echo -e "$id\t$fp"
+}
+
+digest() {
+    md5sum 2>/dev/null || md5 -r
 }
 
 artifact_id() {
@@ -274,7 +271,7 @@ usages() {
 }
 
 mvneval() {
-    mvn -B -f "$1" org.apache.maven.plugins:maven-help-plugin:2.2:evaluate -Dexpression=$2 | grep -v '^\['
+    mvn -B -f "$1" org.apache.maven.plugins:maven-help-plugin:2.2:evaluate -Dexpression=$2 | grep --color=never -v '^\['
 }
 
 dependency_tree() {
@@ -296,13 +293,13 @@ for_modules() {
 mvn_deps() {
     echo 'digraph {' > "$WD/mvn-deps.dot"
     cat "$WD/mvn.dot" \
-        | grep '" -> "' \
+        | grep --color=never '" -> "' \
         | sort \
         | uniq \
         >> "$WD/mvn-deps.dot"
     echo '}' >> "$WD/mvn-deps.dot"
     cat "$WD/mvn-deps.dot" \
-        | grep '" -> "' \
+        | grep --color=never '" -> "' \
         | sed 's/\s*//g;s/->/\t/;s/"//g' \
         | awk 'BEGIN{
                 OFS="\t";
@@ -337,7 +334,6 @@ mvn_deps() {
                 print "}";
             }' 
 }
-
 
 [ -n "$TESTMODE" ] && return
 
