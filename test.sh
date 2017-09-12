@@ -11,18 +11,19 @@ testPackageDetection() {
     mkdir -p "$src2/com/foo/package3" 
     mkdir -p "$src2/com/foo/package4" 
     WD="$src1"
+    TMPDIR="$src1"
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$WD/modules.tab"
     echo -e "id2\tjar\tpom.xml\t$src2\t$src2\t$src2" >>"$WD/modules.tab"
 
     packages
 
-    assertTrue '' "[ -f "$WD/packages-modules.tsv" ]"
+    assertTrue '' "[ -f "$TMPDIR/packages-modules.tsv" ]"
     read -r -d '' expected <<- TIL
 		com.foo.package2	id1
 		com.foo.package3.detail	id1
 		com.foo.package4	id2
 	TIL
-    assertEquals '' "$expected" "$(cat "$WD/packages-modules.tsv")"
+    assertEquals '' "$expected" "$(cat "$TMPDIR/packages-modules.tsv")"
     read -r -d '' expected <<- TIL
 		com.foo.package2
 		com.foo.package3.detail
@@ -36,6 +37,7 @@ testPackageDetectionSingleModule() {
     mkdir -p "$src1/com/foo/package1" 
     mkdir -p "$src1/com/foo/package2/bar" 
     WD="$src1"
+    TMPDIR="$src1"
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$WD/modules.tab"
 
     packages
@@ -43,7 +45,7 @@ testPackageDetectionSingleModule() {
     read -r -d '' expected <<- TIL
 		com	id1
 	TIL
-    assertEquals '' "$expected" "$(cat "$WD/packages-modules.tsv")"
+    assertEquals '' "$expected" "$(cat "$TMPDIR/packages-modules.tsv")"
 }
 
 testUsages() {
@@ -52,17 +54,18 @@ testUsages() {
     local src2="$(mktemp -d)"
     mkdir -p "$src2/src/com/foo/package4" 
     WD="$src1"
+    TMPDIR="$src1"
     echo -e "package com.foo.package2;\nimport com.foo.package4.Two;public class One{} " \
         > "$src1/src/com/foo/package2/One.java"
     echo -e "package com.foo.package4;\nimport com.foo.package2.One;public class Two{} " \
         > "$src2/src/com/foo/package4/Two.java"
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1/src\t$src1/src" > "$WD/modules.tab"
     echo -e "id2\tjar\tpom.xml\t$src2\t$src2/src\t$src2/src" >>"$WD/modules.tab"
-    cat <<- TIL > "$WD/packages-modules.tsv"
+    cat <<- TIL > "$TMPDIR/packages-modules.tsv"
 		com.foo.package2	id1
 		com.foo.package4	id2
 	TIL
-    cut -f1 "$WD/packages-modules.tsv" > "$WD/packages.txt"
+    cut -f1 "$TMPDIR/packages-modules.tsv" > "$TMPDIR/packages.txt"
 
     usages
 
@@ -72,8 +75,8 @@ testUsages() {
 		id2	com/foo/package4/Two.java	com.foo.package2
 		id2	com/foo/package4/Two.java	com.foo.package4
 	TIL
-    assertEquals '' "$(echo -e "$expected" | sort)" "$(cat "$WD/deps-detailed.tsv" | sort)"
-    assertEquals '' "$(echo -e "id1\tid2\t1\nid2\tid1\t1" | sort)" "$(cat "$WD/deps.tsv" | sort)"
+    assertEquals '' "$(echo -e "$expected" | sort)" "$(cat "$TMPDIR/deps-detailed.tsv" | sort)"
+    assertEquals '' "$(echo -e "id1\tid2\t1\nid2\tid1\t1" | sort)" "$(cat "$TMPDIR/deps.tsv" | sort)"
 }
 
 testUsages2() {
@@ -82,17 +85,18 @@ testUsages2() {
     local src2="$(mktemp -d)"
     mkdir -p "$src2/src/com/foo/package4" 
     WD="$src1"
+    TMPDIR="$src1"
     echo -e "package com.foo.package2;\nimport com.foo.package4.Two;public class One{} " \
         > "$src1/src/com/foo/package2/One.java"
     echo -e "package com.foo.package4;\npublic class Two{} " \
         > "$src2/src/com/foo/package4/Two.java"
     echo -e "id1\tjar\tpom.xml\t${src1}\t${src1}/src\t{$src1}/src" > "$WD/modules.tab"
     echo -e "id2\tjar\tpom.xml\t${src2}\t${src2}/src\t{$src2}/src" >>"$WD/modules.tab"
-    cat <<- TIL > "$WD/packages-modules.tsv"
+    cat <<- TIL > "$TMPDIR/packages-modules.tsv"
 		com.foo.package2	id1
 		com.foo.package4	id2
 	TIL
-    cut -f1 "$WD/packages-modules.tsv" > "$WD/packages.txt"
+    cut -f1 "$TMPDIR/packages-modules.tsv" > "$TMPDIR/packages.txt"
 
     usages
 
@@ -101,8 +105,8 @@ testUsages2() {
 		id1	com/foo/package2/One.java	com.foo.package4
 		id2	com/foo/package4/Two.java	com.foo.package4
 	TIL
-    assertEquals '' "$(echo -e "$expected" | sort)" "$(cat "$WD/deps-detailed.tsv" | sort)"
-    assertEquals '' "$(echo -e "id1\tid2\t1" | sort)" "$(cat "$WD/deps.tsv" | sort)"
+    assertEquals '' "$(echo -e "$expected" | sort)" "$(cat "$TMPDIR/deps-detailed.tsv" | sort)"
+    assertEquals '' "$(echo -e "id1\tid2\t1" | sort)" "$(cat "$TMPDIR/deps.tsv" | sort)"
 }
 
 testNoParameters() {
@@ -203,6 +207,7 @@ testArgumentsSuperflousWithOption() {
 testNoModulesFound() {
     local dir="$(mktemp -d)"
     WD="$dir"
+    TMPDIR="$dir"
     local out="$(main "$dir" 2>&1)"
 
     assertEquals "No modules (pom.xml files) found" "$out"

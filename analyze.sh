@@ -3,6 +3,7 @@ set -o errexit
 
 # Work Dir
 WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+TMPDIR="$(mktemp -d)"
 
 main() {
     while getopts ":hi:o:q" opt; do
@@ -129,7 +130,7 @@ line_count() {
 }
 
 id_and_fingerprint() {
-    local e="$WD/effective-pom.xml"
+    local e="$TMPDIR/effective-pom.xml"
     effective_pom "$1" > "$e"
     local id="$(cat "$e" | artifact_id_from_pom)"
     local fp="$(cat "$e" | digest | cut -d ' ' -f 1)"
@@ -147,7 +148,7 @@ artifact_id() {
 
 effective_pom() {
     local f="$1"
-    local o="$WD/effective-pom.xml"
+    local o="$TMPDIR/effective-pom.xml"
     mvn -B -q -f "$f" org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom -Doutput="$o"
     sed '/<!--/d' "$o"
 }
@@ -168,7 +169,7 @@ artifact_id_from_pom() {
 packages() {
     echo "Finding packages"
     # Find unique packages for a module (others will be ignored)
-    echo -n "" > "$WD/packages-modules.tsv"
+    echo -n "" > "$TMPDIR/packages-modules.tsv"
 
     # 1: id, 5: src
     for_modules | cut -f 1,5 \
@@ -210,22 +211,22 @@ packages() {
                 }  
             }' \
         | sort \
-        >> "$WD/packages-modules.tsv"
+        >> "$TMPDIR/packages-modules.tsv"
     
     # Packages:
-    cut -f 1 "$WD/packages-modules.tsv" > "$WD/packages.txt"
+    cut -f 1 "$TMPDIR/packages-modules.tsv" > "$TMPDIR/packages.txt"
 }
 
 usages() {
     echo "Finding usages"
     # One line per apparent actual package dependency:
-    local outfile="$WD/deps-detailed.tsv"
+    local outfile="$TMPDIR/deps-detailed.tsv"
     echo -n "" > "$outfile"
 
     for_modules | cut -f 1,4,5,6 \
     | while read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
-            -exec fgrep --color=never --binary-files=without-match -H -o -f "$WD/packages.txt" {} \; \
+            -exec fgrep --color=never --binary-files=without-match -H -o -f "$TMPDIR/packages.txt" {} \; \
             | awk -F: 'BEGIN{OFS="\t"} {
                         d[1]="'"$src"'"; d[2]="'"$resource"'";
                         for(s in d){
@@ -238,18 +239,18 @@ usages() {
     done 
     # detailed for debug
     
-    cat "$WD/deps-detailed.tsv" \
+    cat "$TMPDIR/deps-detailed.tsv" \
         | cut -f 1,3 \
         | sort \
         | uniq -c \
         | sed 's/^ *//' \
         | tr ' ' \\t \
-        > "$WD/deps-sum-detailed.tsv"
+        > "$TMPDIR/deps-sum-detailed.tsv"
     
-    cat "$WD/deps-sum-detailed.tsv" \
+    cat "$TMPDIR/deps-sum-detailed.tsv" \
         | awk 'BEGIN{
                 OFS="\t";
-                while(( getline line<"'$WD/packages-modules.tsv'") > 0 ) {
+                while(( getline line<"'$TMPDIR/packages-modules.tsv'") > 0 ) {
                     split(line,a);
                     modul[a[1]]=a[2];
                 }
@@ -267,7 +268,7 @@ usages() {
                 }
             }' \
         | sort \
-        > "$WD/deps.tsv"
+        > "$TMPDIR/deps.tsv"
 }
 
 mvneval() {
@@ -277,10 +278,10 @@ mvneval() {
 dependency_tree() {
     local includes="$1"
     echo "dependency tree"
-    rm "$WD/mvn.dot" 2>/dev/null || true
+    rm "$TMPDIR/mvn.dot" 2>/dev/null || true
     for_modules | cut -f 3,4 \
         | while read pom base ;do
-            (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$WD/mvn.dot" -DappendOutput=true)
+            (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$TMPDIR/mvn.dot" -DappendOutput=true)
         done
 }
 
@@ -291,19 +292,19 @@ for_modules() {
 # reads mvn.dot and deps.tsv
 # to create result dot graph
 mvn_deps() {
-    echo 'digraph {' > "$WD/mvn-deps.dot"
-    cat "$WD/mvn.dot" \
+    echo 'digraph {' > "$TMPDIR/mvn-deps.dot"
+    cat "$TMPDIR/mvn.dot" \
         | grep --color=never '" -> "' \
         | sort \
         | uniq \
-        >> "$WD/mvn-deps.dot"
-    echo '}' >> "$WD/mvn-deps.dot"
-    cat "$WD/mvn-deps.dot" \
+        >> "$TMPDIR/mvn-deps.dot"
+    echo '}' >> "$TMPDIR/mvn-deps.dot"
+    cat "$TMPDIR/mvn-deps.dot" \
         | grep --color=never '" -> "' \
         | sed 's/\s*//g;s/->/\t/;s/"//g' \
         | awk 'BEGIN{
                 OFS="\t";
-                while(( getline line<"'"$WD/deps.tsv"'") > 0 ) {
+                while(( getline line<"'"$TMPDIR/deps.tsv"'") > 0 ) {
                     split(line,a);
                     dep[a[1] FS a[2]]=a[3];
                 }

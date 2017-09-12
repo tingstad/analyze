@@ -4,9 +4,10 @@ testMvnDependencyTreeOneSimpleModule() {
     local dir="$(mktemp -d)"
     mkdir -p "$dir"
     WD="$dir"
+    TMPDIR="$dir"
     echo -e "id1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src" \
         > "$WD/modules.tab"
-    cat <<- EOF > "$WD/pom.xml"
+    cat <<- EOF > "$TMPDIR/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
 		    <groupId>g</groupId>
@@ -21,7 +22,7 @@ testMvnDependencyTreeOneSimpleModule() {
 		digraph "g:a:jar:1" { 
 		 }
 	TIL
-    assertEquals "$expected " "$(cat "$WD/mvn.dot")"
+    assertEquals "$expected " "$(cat "$TMPDIR/mvn.dot")"
 }
 
 testMvnDependencyTreeTwoModules() {
@@ -31,6 +32,7 @@ testMvnDependencyTreeTwoModules() {
     mkdir -p "$base1/src/main/java"
     mkdir -p "$base2/src/main/java"
     WD="$dir"
+    TMPDIR="$dir"
     echo -e "id1\tjar\tpom.xml\t${base1}\t${base1}/src\t${base1}/src\n" \
             "id2\tjar\tpom.xml\t${base2}\t${base2}/src\t${base2}/src" \
         > "$WD/modules.tab"
@@ -65,7 +67,7 @@ testMvnDependencyTreeTwoModules() {
         | sed '$a\ } digraph "g:b:jar:1" { '\
         | sed '$a\\t"g:b:jar:1" -> "g:a:jar:1:compile" ; '\
         | sed '$a\ } ')
-    assertEquals "${expected}" "$(cat "$WD/mvn.dot")"
+    assertEquals "${expected}" "$(cat "$TMPDIR/mvn.dot")"
 }
 
 testFindOneModule() {
@@ -73,6 +75,7 @@ testFindOneModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     WD="$dir"
+    TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
@@ -95,6 +98,7 @@ testFindNewModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     WD="$dir"
+    TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
@@ -119,6 +123,7 @@ testFindUnchangedModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     WD="$dir"
+    TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
@@ -142,6 +147,7 @@ testFindChangedModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     WD="$dir"
+    TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
