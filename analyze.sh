@@ -74,15 +74,15 @@ print_usage() {
 find_modules() {
     local target_dir="$1"
     local outfile="$WD/modules.tab"
+    local mod_time=$(uname | grep -q Darwin && echo "-f %m" || echo "-c %Y") #TODO
+    while [ -f "$outfile" ] && [ "$(stat $mod_time "$outfile")" -ge "$(date +%s)" ]; do
+        sleep 1
+    done
     local time=$(date +%s)
     find "$target_dir" -name pom.xml -type f -print0 \
     | while read -d $'\0' f ;do
-        #[ -f "$outfile ] || touch "$outfile"
-        #while [ 
         echo -n "Found module $f"
-        #[ -f "$outfile ] || touch "$outfile"
-        #while [ 
-        touch "$newfile"
+        touch "$outfile"
         local id_and_fp="$(id_and_fingerprint "$f")"
         local id="$(echo "$id_and_fp" | cut -f 1)"
         local fingerprint="$(echo "$id_and_fp" | cut -f 2)"
@@ -108,7 +108,7 @@ find_modules() {
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
             >> "$outfile"
     done
-    if [ ! -f "$newfile" ]; then
+    if [ ! -f "$outfile" ] || [ "$(stat $mod_time "$outfile")" -le "$time" ]; then
         error "No modules (pom.xml files) found"
     fi
 }
