@@ -41,7 +41,7 @@ main() {
     packages >&3
     usages >&3
     dependency_tree "${includes:-*}" >&3
-    # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s && / "$includes":/{print}" 
+    # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s{print}" 
     echo "mvn deps" >&3
     if [ -n "$outputfile" ]; then
         mvn_deps > "$outputfile"
@@ -148,6 +148,7 @@ artifact_id() {
 
 effective_pom() {
     local f="$1"
+    [ -n "$f" ] || error 'Invalid argument'
     local o="$TMPDIR/effective-pom.xml"
     mvn -B -q -f "$f" org.apache.maven.plugins:maven-help-plugin:2.2:effective-pom -Doutput="$o"
     sed '/<!--/d' "$o"

@@ -248,7 +248,13 @@ testArtifactIdFromPom() {
 	EOF
     )
 
-    assertEquals '' "g:a:1" "$actual"
+    assertEquals "g:a:1" "$actual"
+}
+
+testThatEffectivePomFailsWithutArgument() {
+    local actual=$(effective_pom 2>&1)
+
+    assertEquals 'Invalid argument' "$actual"
 }
 
 DIR="$( dirname "$(pwd)/$0" )"
