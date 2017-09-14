@@ -257,6 +257,28 @@ testThatEffectivePomFailsWithutArgument() {
     assertEquals 'Invalid argument' "$actual"
 }
 
+testModuleSize() {
+    WD="$(mktemp -d)"
+    TMPDIR="$WD"
+    mkdir -p "$WD/src/pkg"
+    cat <<- EOF > "$WD/src/pkg/One.java"
+		package pkg;
+		public class One{}
+		// This file is 3 lines
+	EOF
+    cat <<- EOF > "$WD/src/pkg/Two.java"
+		package pkg;
+		
+		public class Two{}
+		// This file is
+		// 5 lines
+	EOF
+
+    local actual=$(module_size "$WD")
+
+    assertEquals '8' "$actual"
+}
+
 DIR="$( dirname "$(pwd)/$0" )"
 TESTMODE="on"
 source "$DIR/analyze.sh"

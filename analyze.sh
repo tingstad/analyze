@@ -337,6 +337,14 @@ mvn_deps() {
             }' 
 }
 
+module_size() {
+    local d="$1"
+    [ -n "$d" ] || error 'Invalid argument'
+    find "$d" -name \*.java -type f \
+        -exec wc -l {} \; \
+        | awk -F ' ' '{ s+=$1 } END{ print s }'
+}
+
 [ -n "$TESTMODE" ] && return
 
 main $@
