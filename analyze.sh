@@ -75,11 +75,16 @@ print_usage() {
 find_modules() {
     local target_dir="$1"
     local outfile="$WD/modules.tab"
-    find "$target_dir" -name pom.xml -type f -print0 \
-    | while read -d $'\0' f ;do
+    find "$target_dir" -name pom.xml -type f -print \
+    | sort -r \
+    | while read f ;do
         echo -n "Found module $f"
         local id_and_fp="$(id_and_fingerprint "$f")"
         local id="$(echo "$id_and_fp" | cut -f 1)"
+        if [ "$id" = "::" ]; then
+            echo "Skipping invalid $f" >&2
+            continue
+        fi
         local fingerprint="$(echo "$id_and_fp" | cut -f 2)"
         local existing=$(awk "\$1 == \"$id\" { print \$7 }" "$outfile" 2>/dev/null || echo "na")
         if [ $fingerprint = "$existing" ]; then
@@ -174,7 +179,7 @@ packages() {
 
     # 1: id, 5: src
     for_modules | cut -f 1,5 \
-    | while read id src ;do
+    | while IFS=$'\t' read id src ;do
         if [ ! -d "$src" ]; then
             continue
         fi
@@ -225,7 +230,7 @@ usages() {
     echo -n "" > "$outfile"
 
     for_modules | cut -f 1,4,5,6 \
-    | while read id base src resource ;do
+    | while IFS=$'\t' read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
             -exec fgrep --color=never --binary-files=without-match -H -o -f "$TMPDIR/packages.txt" {} \; \
             | awk -F: 'BEGIN{OFS="\t"} {
@@ -281,7 +286,7 @@ dependency_tree() {
     echo "dependency tree"
     rm "$TMPDIR/mvn.dot" 2>/dev/null || true
     for_modules | cut -f 3,4 \
-        | while read pom base ;do
+        | while IFS=$'\t' read pom base ;do
             (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$TMPDIR/mvn.dot" -DappendOutput=true)
         done
 }
