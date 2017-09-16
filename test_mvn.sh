@@ -93,6 +93,40 @@ testFindOneModule() {
     assertEquals "${expected}" "$(cat "$WD/modules.tab")"
 }
 
+testFindTwoModules() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module 1"
+    local base2="$dir/module2"
+    mkdir -p "$base1/src/main/java"
+    mkdir -p "$base2/src/main/java"
+    WD="$dir"
+    TMPDIR="$dir"
+    cat <<- EOF > "$base1/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>with-space-in-path</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+    cat <<- EOF > "$base2/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>b</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+
+    find_modules "$dir" >/dev/null
+
+    read -r -d '' expected <<- EOF
+		g:b:1	jar	$base2/pom.xml	$base2	$base2/src/main/java	$base2/src/main/resources	$(fingerprint "$base2/pom.xml")
+		g:with-space-in-path:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
+	EOF
+    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+}
+
 testFindNewModule() {
     local dir="$(mktemp -d)"
     local base1="$dir/module1"

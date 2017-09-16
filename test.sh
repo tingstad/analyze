@@ -221,10 +221,10 @@ testArtifactIdFromSimplePom() {
 		    <artifactId>a</artifactId>
 		    <version>1</version>
 		</project>
-	EOF
+		EOF
     )
  
-    assertEquals '' "g:a:1" "$actual"
+    assertEquals "g:a:1" "$actual"
 }
 
 testArtifactIdFromPom() {
@@ -245,7 +245,7 @@ testArtifactIdFromPom() {
 		      </pluginManagement>
 		    </build>
 		</project>
-	EOF
+		EOF
     )
 
     assertEquals "g:a:1" "$actual"
