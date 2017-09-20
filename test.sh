@@ -14,7 +14,7 @@ testPackageDetection() {
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$TMPDIR/modules.tab"
     echo -e "id2\tjar\tpom.xml\t$src2\t$src2\t$src2" >>"$TMPDIR/modules.tab"
 
-    packages "$TMPDIR/modules.tab"
+    packages "$TMPDIR/modules.tab" "$TMPDIR/packages-modules.tsv"
 
     assertTrue '' "[ -f "$TMPDIR/packages-modules.tsv" ]"
     read -r -d '' expected <<- TIL
@@ -23,12 +23,6 @@ testPackageDetection() {
 		com.foo.package4	id2
 	TIL
     assertEquals '' "$expected" "$(cat "$TMPDIR/packages-modules.tsv")"
-    read -r -d '' expected <<- TIL
-		com.foo.package2
-		com.foo.package3.detail
-		com.foo.package4
-	TIL
-    assertEquals '' "$expected" "$(cat "$src1/packages.txt")"
 }
 
 testPackageDetectionSingleModule() {
@@ -38,7 +32,7 @@ testPackageDetectionSingleModule() {
     TMPDIR="$src1"
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$TMPDIR/modules.tab"
 
-    packages "$TMPDIR/modules.tab"
+    packages "$TMPDIR/modules.tab" "$TMPDIR/packages-modules.tsv"
 
     read -r -d '' expected <<- TIL
 		com	id1
