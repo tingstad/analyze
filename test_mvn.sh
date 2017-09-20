@@ -201,6 +201,71 @@ testFindChangedModule() {
     assertEquals "${expected}" "$(cat "$WD/modules.tab")"
 }
 
+testEndToEnd() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module1"
+    local base2="$dir/module2"
+    local base3="$dir/module3"
+    mkdir -p "$base1/src/main/java" "$base2/src/main/java" "$base3/src/main/java"
+    WD="$dir"
+    TMPDIR="$dir"
+    cat <<- EOF > "$dir/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>build-pom</artifactId>
+		    <version>1</version>
+		    <packaging>pom</packaging>
+		    <modules>
+		        <module>module1</module>
+		        <module>module2</module>
+		        <module>module3</module>
+		    </modules>
+		</project>
+	EOF
+    cat <<- EOF > "$base1/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>module-one</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+    cat <<- EOF > "$base2/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>module-two</artifactId>
+		    <version>1</version>
+		    <dependencies><dependency>
+		        <groupId>g</groupId>
+		        <artifactId>module-three</artifactId>
+		        <version>1</version>
+		    </dependency></dependencies>
+		</project>
+	EOF
+    cat <<- EOF > "$base3/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>module-three</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+    echo -e "public class One {}" \
+        > "$base1/src/main/java/One.java"
+    (cd "$dir" && mvn -B -q install -Dmaven.test.skip=true)
+
+    local out="$(main -q "$dir")"
+
+    read -r -d '' expected <<- EOF
+		digraph {
+		"g:module-two:1" -> "g:module-three:1";
+		}
+	EOF
+    assertEquals "$expected" "$out"
+}
+
 DIR="$( dirname "$(pwd)/$0" )"
 TESTMODE="on"
 source "$DIR/analyze.sh"
