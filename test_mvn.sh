@@ -83,7 +83,7 @@ testFindOneModule() {
 		</project>
 	EOF
 
-    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
+    find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
@@ -115,7 +115,7 @@ testFindTwoModules() {
 		</project>
 	EOF
 
-    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
+    find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:b:1	jar	$base2/pom.xml	$base2	$base2/src/main/java	$base2/src/main/resources	$(fingerprint "$base2/pom.xml")
@@ -140,7 +140,7 @@ testFindNewModule() {
 	EOF
     echo -e "id2\tjar\tpom.xml\tBASE\tSRC\tRESRC\tHASH" > "$WD/cache_modules.tab"
 
-    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
+    find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		id2	jar	pom.xml	BASE	SRC	RESRC	HASH
@@ -166,7 +166,7 @@ testFindUnchangedModule() {
 	EOF
     echo -e "g:a:1\tjar\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$WD/cache_modules.tab"
 
-    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
+    find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
@@ -192,7 +192,7 @@ testFindChangedModule() {
     echo -e "g:a:1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src\tDIFFERENT" \
         > "$WD/cache_modules.tab"
 
-    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
+    find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
@@ -217,7 +217,7 @@ testFindCachedPom() {
 	EOF
     echo -e "g:a:1\tpom\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$WD/cache_modules.tab"
 
-    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
+    find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:a:1	pom	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")

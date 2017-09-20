@@ -1,8 +1,6 @@
 #!/bin/bash
 set -o errexit
 
-# Work Dir
-WD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 TMPDIR="$(mktemp -d)"
 
 main() {
@@ -30,6 +28,7 @@ main() {
         echo "'$1' is not a directory" >&2
         print_usage_and_exit
     fi
+    local work_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
     local target_dir="$(cd "$1" && pwd)" # Dir to analyze
     if [ -n "$quiet" ]; then
         exec 3>/dev/null
@@ -37,7 +36,7 @@ main() {
         exec 3>&1
     fi
 
-    find_modules "$target_dir" "$TMPDIR/modules.tab" >&3
+    find_modules "$target_dir" "$work_dir" "$TMPDIR/modules.tab" >&3
     packages >&3
     usages >&3
     dependency_tree "${includes:-*}" >&3
@@ -73,10 +72,10 @@ print_usage() {
 }
 
 find_modules() {
-    [ -d "$1" ] && [ -n "$2" ] || error "Illegal argument"
+    [ $# -eq 3 ] && [ -d "$1" ] && [ -d "$2" ] && [ -n "$3" ] || error "Illegal argument"
     local target_dir="$1"
-    local outfile="$2"
-    local cachefile="$WD/cache_modules.tab"
+    local cachefile="$2/cache_modules.tab"
+    local outfile="$3"
     find "$target_dir" -name pom.xml -type f -print \
     | sort -r \
     | while read f ;do

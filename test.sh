@@ -291,6 +291,12 @@ testFindModulesOneArgumentShouldFail() {
     assertEquals "Illegal argument" "$actual"
 }
 
+testFindModulesTooManyArguments() {
+    local actual="$(find_modules . . . . 2>&1)"
+
+    assertEquals "Illegal argument" "$actual"
+}
+
 DIR="$( dirname "$(pwd)/$0" )"
 TESTMODE="on"
 source "$DIR/analyze.sh"
