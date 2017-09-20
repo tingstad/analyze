@@ -36,8 +36,10 @@ main() {
         exec 3>&1
     fi
 
-    find_modules "$target_dir" "$work_dir" "$TMPDIR/modules.tab" >&3
-    packages >&3
+    echo "Using temp dir $TMPDIR" >&3
+    local modules="$TMPDIR/modules.tab" 
+    find_modules "$target_dir" "$work_dir" "$modules" >&3
+    packages "$modules" >&3
     usages >&3
     dependency_tree "${includes:-*}" >&3
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s{print}" 
@@ -178,11 +180,13 @@ artifact_id_from_pom() {
 
 packages() {
     echo "Finding packages"
+    [ -f "$1" ] || error "Illegal argument"
+    local modules="$1"
     # Find unique packages for a module (others will be ignored)
     echo -n "" > "$TMPDIR/packages-modules.tsv"
 
     # 1: id, 5: src
-    for_modules | cut -f 1,5 \
+    cut -f 1,5 "$modules" \
     | while IFS=$'\t' read id src ;do
         if [ ! -d "$src" ]; then
             continue

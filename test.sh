@@ -14,7 +14,7 @@ testPackageDetection() {
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$TMPDIR/modules.tab"
     echo -e "id2\tjar\tpom.xml\t$src2\t$src2\t$src2" >>"$TMPDIR/modules.tab"
 
-    packages
+    packages "$TMPDIR/modules.tab"
 
     assertTrue '' "[ -f "$TMPDIR/packages-modules.tsv" ]"
     read -r -d '' expected <<- TIL
@@ -38,7 +38,7 @@ testPackageDetectionSingleModule() {
     TMPDIR="$src1"
     echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$TMPDIR/modules.tab"
 
-    packages
+    packages "$TMPDIR/modules.tab"
 
     read -r -d '' expected <<- TIL
 		com	id1
@@ -203,7 +203,7 @@ testArgumentsSuperflousWithOption() {
 testNoModulesFound() {
     local dir="$(mktemp -d)"
     TMPDIR="$dir"
-    local out="$(main "$dir" 2>&1)"
+    local out="$(main -q "$dir" 2>&1)"
 
     assertEquals "No modules (pom.xml files) found" "$out"
 }
