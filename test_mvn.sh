@@ -226,7 +226,7 @@ testEndToEnd() {
     local base1="$dir/module1"
     local base2="$dir/module2"
     local base3="$dir/module3"
-    mkdir -p "$base1/src/main/java" "$base2/src/main/java" "$base3/src/main/java"
+    mkdir -p "$base1/src/main/java/com/m1" "$base2/src/main/java/com/m2" "$base3/src/main/java/com/m3"
     TMPDIR="$dir"
     cat <<- EOF > "$dir/pom.xml"
 		<project>
@@ -248,6 +248,11 @@ testEndToEnd() {
 		    <groupId>g</groupId>
 		    <artifactId>module-one</artifactId>
 		    <version>1</version>
+		    <dependencies><dependency>
+		        <groupId>g</groupId>
+		        <artifactId>module-two</artifactId>
+		        <version>1</version>
+		    </dependency></dependencies>
 		</project>
 	EOF
     cat <<- EOF > "$base2/pom.xml"
@@ -271,15 +276,30 @@ testEndToEnd() {
 		    <version>1</version>
 		</project>
 	EOF
-    echo -e "public class One {}" \
-        > "$base1/src/main/java/One.java"
+    cat <<- EOF > "$base1/src/main/java/com/m1/One.java"
+		package com.m1;
+		import static com.m2.Two.A;
+		import static com.m2.Two.B;
+		import com.m3.*;
+		public class One {}
+	EOF
+    cat <<- EOF > "$base2/src/main/java/com/m2/Two.java"
+		package com.m2;
+		public class Two { public static int A=1, B=2; }
+	EOF
+    cat <<- EOF > "$base3/src/main/java/com/m3/Three.java"
+		package com.m3;
+		public class Three {}
+	EOF
     (cd "$dir" && mvn -B -q install -Dmaven.test.skip=true)
 
     local out="$(main -q "$dir")"
 
     read -r -d '' expected <<- EOF
 		digraph {
+		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
 		"g:module-two:1" -> "g:module-three:1";
+		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
 		}
 	EOF
     assertEquals "$expected" "$out"
