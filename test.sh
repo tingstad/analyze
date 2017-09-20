@@ -57,7 +57,7 @@ testUsages() {
 		com.foo.package4	id2
 	TIL
 
-    usages "$TMPDIR/modules.tab" "$TMPDIR/packages-modules.tsv"
+    usages "$TMPDIR/modules.tab" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv"
 
     read -r -d '' expected <<- TIL
 		id1	com/foo/package2/One.java	com.foo.package2
@@ -86,7 +86,7 @@ testUsages2() {
 		com.foo.package4	id2
 	TIL
 
-    usages "$TMPDIR/modules.tab" "$TMPDIR/packages-modules.tsv"
+    usages "$TMPDIR/modules.tab" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv"
 
     read -r -d '' expected <<- TIL
 		id1	com/foo/package2/One.java	com.foo.package2

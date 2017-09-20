@@ -40,14 +40,14 @@ main() {
     local modules="$TMPDIR/modules.tab" 
     find_modules "$target_dir" "$work_dir" "$modules" >&3
     packages "$modules" "$TMPDIR/packages-modules.tsv" >&3
-    usages "$modules" "$TMPDIR/packages-modules.tsv" >&3
-    dependency_tree "${includes:-*}" >&3
+    usages "$modules" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv" >&3
+    dependency_tree "$modules" "${includes:-*}" "$TMPDIR/mvn.dot" >&3
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s{print}" 
     echo "mvn deps" >&3
     if [ -n "$outputfile" ]; then
-        mvn_deps > "$outputfile"
+        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot" > "$outputfile"
     else
-        mvn_deps
+        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot"
     fi
 }
 
@@ -231,12 +231,13 @@ packages() {
 
 usages() {
     echo "Finding usages"
-    [ -f "$1" ] && [ -f "$2" ] || error "Illegal argument"
+    [ $# -eq 3 ] && [ -f "$1" ] && [ -f "$2" ] && [ -n "$3" ] || error "Illegal argument"
     local modules="$1"
     local packages_modules_file="$2"
+    local outfile="$3"
     # One line per apparent actual package dependency:
-    local outfile="$TMPDIR/deps-detailed.tsv"
-    echo -n "" > "$outfile"
+    local detailed="$TMPDIR/deps-detailed.tsv"
+    echo -n "" > "$detailed"
 
     cut -f 1 "${packages_modules_file}" > "$TMPDIR/packages.txt"
     cut -f 1,4,5,6 "$modules" \
@@ -251,11 +252,11 @@ usages() {
                                 break;
                             }
                         } print "'"$id"'",$1,$2; }' \
-            >> "$outfile"
+            >> "$detailed"
     done 
     # detailed for debug
     
-    cat "$TMPDIR/deps-detailed.tsv" \
+    cat "$detailed" \
         | cut -f 1,3 \
         | sort \
         | uniq -c \
@@ -284,7 +285,7 @@ usages() {
                 }
             }' \
         | sort \
-        > "$TMPDIR/deps.tsv"
+        > "$outfile"
 }
 
 mvneval() {
@@ -292,20 +293,26 @@ mvneval() {
 }
 
 dependency_tree() {
-    local includes="$1"
+    [ $# -eq 3 ] && [ -f "$1" ] && [ -n "$2" ] && [ -n "$3" ] || error "Illegal argument"
+    local modules="$1"
+    local includes="$2"
+    local outfile="$3"
     echo "dependency tree"
-    rm "$TMPDIR/mvn.dot" 2>/dev/null || true
-    cut -f 3,4 "$TMPDIR/modules.tab" \
+    rm "$outfile" 2>/dev/null || true
+    cut -f 3,4 "$modules" \
         | while IFS=$'\t' read pom base ;do
-            (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$TMPDIR/mvn.dot" -DappendOutput=true)
+            (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$outfile" -DappendOutput=true)
         done
 }
 
 # reads mvn.dot and deps.tsv
 # to create result dot graph
 mvn_deps() {
+    [ $# -eq 2 ] && [ -f "$1" ] && [ -f "$2" ] || error "Illegal argument"
+    local deps="$1"
+    local mvn_dot="$2"
     echo 'digraph {' > "$TMPDIR/mvn-deps.dot"
-    cat "$TMPDIR/mvn.dot" \
+    cat "${mvn_dot}" \
         | grep --color=never '" -> "' \
         | sort \
         | uniq \
@@ -316,7 +323,7 @@ mvn_deps() {
         | sed 's/\s*//g;s/->/\t/;s/"//g' \
         | awk 'BEGIN{
                 OFS="\t";
-                while(( getline line<"'"$TMPDIR/deps.tsv"'") > 0 ) {
+                while(( getline line<"'"$deps"'") > 0 ) {
                     split(line,a);
                     dep[a[1] FS a[2]]=a[3];
                 }

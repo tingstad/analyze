@@ -15,7 +15,7 @@ testMvnDependencyTreeOneSimpleModule() {
 		</project>
 	EOF
 
-    dependency_tree
+    dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot"
 
     read -r -d '' expected <<- TIL
 		digraph "g:a:jar:1" { 
@@ -59,7 +59,7 @@ testMvnDependencyTreeTwoModules() {
         > "$base1/src/main/java/One.java"
     (cd "$base1" && mvn -B -q install -Dmaven.test.skip=true)
 
-    dependency_tree
+    dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot"
 
     expected=$(echo 'digraph "g:a:jar:1" { '\
         | sed '$a\ } digraph "g:b:jar:1" { '\
