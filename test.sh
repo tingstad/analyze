@@ -56,9 +56,8 @@ testUsages() {
 		com.foo.package2	id1
 		com.foo.package4	id2
 	TIL
-    cut -f1 "$TMPDIR/packages-modules.tsv" > "$TMPDIR/packages.txt"
 
-    usages "$TMPDIR/modules.tab"
+    usages "$TMPDIR/modules.tab" "$TMPDIR/packages-modules.tsv"
 
     read -r -d '' expected <<- TIL
 		id1	com/foo/package2/One.java	com.foo.package2
@@ -86,9 +85,8 @@ testUsages2() {
 		com.foo.package2	id1
 		com.foo.package4	id2
 	TIL
-    cut -f1 "$TMPDIR/packages-modules.tsv" > "$TMPDIR/packages.txt"
 
-    usages "$TMPDIR/modules.tab"
+    usages "$TMPDIR/modules.tab" "$TMPDIR/packages-modules.tsv"
 
     read -r -d '' expected <<- TIL
 		id1	com/foo/package2/One.java	com.foo.package2

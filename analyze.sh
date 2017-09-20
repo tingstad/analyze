@@ -40,8 +40,7 @@ main() {
     local modules="$TMPDIR/modules.tab" 
     find_modules "$target_dir" "$work_dir" "$modules" >&3
     packages "$modules" "$TMPDIR/packages-modules.tsv" >&3
-    cut -f 1 "$TMPDIR/packages-modules.tsv" > "$TMPDIR/packages.txt"
-    usages "$modules" >&3
+    usages "$modules" "$TMPDIR/packages-modules.tsv" >&3
     dependency_tree "${includes:-*}" >&3
     # mvn dependency:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s{print}" 
     echo "mvn deps" >&3
@@ -232,12 +231,14 @@ packages() {
 
 usages() {
     echo "Finding usages"
-    [ -f "$1" ] || error "Illegal argument"
+    [ -f "$1" ] && [ -f "$2" ] || error "Illegal argument"
     local modules="$1"
+    local packages_modules_file="$2"
     # One line per apparent actual package dependency:
     local outfile="$TMPDIR/deps-detailed.tsv"
     echo -n "" > "$outfile"
 
+    cut -f 1 "${packages_modules_file}" > "$TMPDIR/packages.txt"
     cut -f 1,4,5,6 "$modules" \
     | while IFS=$'\t' read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
@@ -265,7 +266,7 @@ usages() {
     cat "$TMPDIR/deps-sum-detailed.tsv" \
         | awk 'BEGIN{
                 OFS="\t";
-                while(( getline line<"'$TMPDIR/packages-modules.tsv'") > 0 ) {
+                while(( getline line<"'${packages_modules_file}'") > 0 ) {
                     split(line,a);
                     modul[a[1]]=a[2];
                 }
