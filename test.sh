@@ -64,7 +64,7 @@ testUsages() {
 	TIL
     cut -f1 "$TMPDIR/packages-modules.tsv" > "$TMPDIR/packages.txt"
 
-    usages
+    usages "$TMPDIR/modules.tab"
 
     read -r -d '' expected <<- TIL
 		id1	com/foo/package2/One.java	com.foo.package2
@@ -94,7 +94,7 @@ testUsages2() {
 	TIL
     cut -f1 "$TMPDIR/packages-modules.tsv" > "$TMPDIR/packages.txt"
 
-    usages
+    usages "$TMPDIR/modules.tab"
 
     read -r -d '' expected <<- TIL
 		id1	com/foo/package2/One.java	com.foo.package2
