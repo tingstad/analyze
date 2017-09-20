@@ -10,10 +10,9 @@ testPackageDetection() {
     mkdir -p "$src2/com/foo/package1" 
     mkdir -p "$src2/com/foo/package3" 
     mkdir -p "$src2/com/foo/package4" 
-    WD="$src1"
     TMPDIR="$src1"
-    echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$WD/modules.tab"
-    echo -e "id2\tjar\tpom.xml\t$src2\t$src2\t$src2" >>"$WD/modules.tab"
+    echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$TMPDIR/modules.tab"
+    echo -e "id2\tjar\tpom.xml\t$src2\t$src2\t$src2" >>"$TMPDIR/modules.tab"
 
     packages
 
@@ -36,9 +35,8 @@ testPackageDetectionSingleModule() {
     local src1="$(mktemp -d)"
     mkdir -p "$src1/com/foo/package1" 
     mkdir -p "$src1/com/foo/package2/bar" 
-    WD="$src1"
     TMPDIR="$src1"
-    echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$WD/modules.tab"
+    echo -e "id1\tjar\tpom.xml\t$src1\t$src1\t$src1" > "$TMPDIR/modules.tab"
 
     packages
 
@@ -53,14 +51,13 @@ testUsages() {
     mkdir -p "$src1/src/com/foo/package2" 
     local src2="$(mktemp -d)"
     mkdir -p "$src2/src/com/foo/package4" 
-    WD="$src1"
     TMPDIR="$src1"
     echo -e "package com.foo.package2;\nimport com.foo.package4.Two;public class One{} " \
         > "$src1/src/com/foo/package2/One.java"
     echo -e "package com.foo.package4;\nimport com.foo.package2.One;public class Two{} " \
         > "$src2/src/com/foo/package4/Two.java"
-    echo -e "id1\tjar\tpom.xml\t$src1\t$src1/src\t$src1/src" > "$WD/modules.tab"
-    echo -e "id2\tjar\tpom.xml\t$src2\t$src2/src\t$src2/src" >>"$WD/modules.tab"
+    echo -e "id1\tjar\tpom.xml\t$src1\t$src1/src\t$src1/src" > "$TMPDIR/modules.tab"
+    echo -e "id2\tjar\tpom.xml\t$src2\t$src2/src\t$src2/src" >>"$TMPDIR/modules.tab"
     cat <<- TIL > "$TMPDIR/packages-modules.tsv"
 		com.foo.package2	id1
 		com.foo.package4	id2
@@ -84,14 +81,13 @@ testUsages2() {
     mkdir -p "$src1/src/com/foo/package2" 
     local src2="$(mktemp -d)"
     mkdir -p "$src2/src/com/foo/package4" 
-    WD="$src1"
     TMPDIR="$src1"
     echo -e "package com.foo.package2;\nimport com.foo.package4.Two;public class One{} " \
         > "$src1/src/com/foo/package2/One.java"
     echo -e "package com.foo.package4;\npublic class Two{} " \
         > "$src2/src/com/foo/package4/Two.java"
-    echo -e "id1\tjar\tpom.xml\t${src1}\t${src1}/src\t{$src1}/src" > "$WD/modules.tab"
-    echo -e "id2\tjar\tpom.xml\t${src2}\t${src2}/src\t{$src2}/src" >>"$WD/modules.tab"
+    echo -e "id1\tjar\tpom.xml\t${src1}\t${src1}/src\t{$src1}/src" > "$TMPDIR/modules.tab"
+    echo -e "id2\tjar\tpom.xml\t${src2}\t${src2}/src\t{$src2}/src" >>"$TMPDIR/modules.tab"
     cat <<- TIL > "$TMPDIR/packages-modules.tsv"
 		com.foo.package2	id1
 		com.foo.package4	id2
@@ -206,7 +202,6 @@ testArgumentsSuperflousWithOption() {
 
 testNoModulesFound() {
     local dir="$(mktemp -d)"
-    WD="$dir"
     TMPDIR="$dir"
     local out="$(main "$dir" 2>&1)"
 
@@ -258,15 +253,14 @@ testThatEffectivePomFailsWithutArgument() {
 }
 
 testModuleSize() {
-    WD="$(mktemp -d)"
-    TMPDIR="$WD"
-    mkdir -p "$WD/src/pkg"
-    cat <<- EOF > "$WD/src/pkg/One.java"
+    local dir="$(mktemp -d)"
+    mkdir -p "$dir/src/pkg"
+    cat <<- EOF > "$dir/src/pkg/One.java"
 		package pkg;
 		public class One{}
 		// This file is 3 lines
 	EOF
-    cat <<- EOF > "$WD/src/pkg/Two.java"
+    cat <<- EOF > "$dir/src/pkg/Two.java"
 		package pkg;
 		
 		public class Two{}
@@ -274,7 +268,7 @@ testModuleSize() {
 		// 5 lines
 	EOF
 
-    local actual=$(module_size "$WD")
+    local actual=$(module_size "$dir")
 
     assertEquals '8' "$actual"
 }
