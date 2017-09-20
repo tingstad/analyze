@@ -37,7 +37,7 @@ main() {
         exec 3>&1
     fi
 
-    find_modules "$target_dir" >&3
+    find_modules "$target_dir" "$TMPDIR/modules.tab" >&3
     packages >&3
     usages >&3
     dependency_tree "${includes:-*}" >&3
@@ -73,8 +73,10 @@ print_usage() {
 }
 
 find_modules() {
+    [ -d "$1" ] && [ -n "$2" ] || error "Illegal argument"
     local target_dir="$1"
-    local outfile="$WD/modules.tab"
+    local outfile="$2"
+    local cachefile="$WD/cache_modules.tab"
     find "$target_dir" -name pom.xml -type f -print \
     | sort -r \
     | while read f ;do
@@ -86,18 +88,19 @@ find_modules() {
             continue
         fi
         local fingerprint="$(echo "$id_and_fp" | cut -f 2)"
-        local existing=$(awk "\$1 == \"$id\" { print \$7 }" "$outfile" 2>/dev/null || echo "na")
+        local existing=$(awk "\$1 == \"$id\" { print \$7 }" "$cachefile" 2>/dev/null || echo "na")
         if [ $fingerprint = "$existing" ]; then
             echo " - $id"
+            awk "\$1 == \"${id}\" && \$2 != \"pom\"" "$cachefile" >> "$outfile"
             continue
         else
-            [ -f "$outfile" ] && sed -i "/^$id\t/d" "$outfile"
+            [ -f "$cachefile" ] && sed -i "/^$id\t/d" "$cachefile"
         fi
         local pkg="$(mvneval "$f" project.packaging)"
         if [ "$pkg" = "pom" ]; then
             echo " - packaging pom, skipping..."
             echo -e "${id}\t${pkg}\t${f}\tn/a\tn/a\tn/a\t${fingerprint}" \
-                >> "$outfile"
+                >> "$cachefile"
             continue
         fi
         echo -n " - packaging $pkg"
@@ -105,6 +108,8 @@ find_modules() {
         local src="$(mvneval "$f" project.build.sourceDirectory)"
         local resources="$(mvneval "$f" project.build.resources[0].directory)"
         echo " - $id"
+        echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
+            >> "$cachefile"
         echo -e "${id}\t${pkg}\t${f}\t${base}\t${src}\t${resources}\t${fingerprint}" \
             >> "$outfile"
     done | grep --color=never . \
@@ -285,14 +290,14 @@ dependency_tree() {
     local includes="$1"
     echo "dependency tree"
     rm "$TMPDIR/mvn.dot" 2>/dev/null || true
-    for_modules | cut -f 3,4 \
+    cut -f 3,4 "$TMPDIR/modules.tab" \
         | while IFS=$'\t' read pom base ;do
             (cd "$base" && mvn -B -q dependency:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$TMPDIR/mvn.dot" -DappendOutput=true)
         done
 }
 
 for_modules() {
-    awk '$2 != "pom"' "$WD/modules.tab"
+    awk '$2 != "pom"' "$TMPDIR/modules.tab"
 }
 
 # reads mvn.dot and deps.tsv

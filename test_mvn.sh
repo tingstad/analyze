@@ -31,11 +31,10 @@ testMvnDependencyTreeTwoModules() {
     local base2="$dir/module2"
     mkdir -p "$base1/src/main/java"
     mkdir -p "$base2/src/main/java"
-    WD="$dir"
     TMPDIR="$dir"
     echo -e "id1\tjar\tpom.xml\t${base1}\t${base1}/src\t${base1}/src\n" \
             "id2\tjar\tpom.xml\t${base2}\t${base2}/src\t${base2}/src" \
-        > "$WD/modules.tab"
+        > "$TMPDIR/modules.tab"
     cat <<- EOF > "$base1/pom.xml"
 		<project>
 		    <modelVersion>4.0.0</modelVersion>
@@ -74,7 +73,6 @@ testFindOneModule() {
     local dir="$(mktemp -d)"
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
-    WD="$dir"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
 		<project>
@@ -85,12 +83,12 @@ testFindOneModule() {
 		</project>
 	EOF
 
-    find_modules "$dir" >/dev/null
+    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
 	EOF
-    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+    assertEquals "$expected" "$(cat "$TMPDIR/modules.tab")"
 }
 
 testFindTwoModules() {
@@ -99,7 +97,6 @@ testFindTwoModules() {
     local base2="$dir/module2"
     mkdir -p "$base1/src/main/java"
     mkdir -p "$base2/src/main/java"
-    WD="$dir"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
 		<project>
@@ -118,13 +115,13 @@ testFindTwoModules() {
 		</project>
 	EOF
 
-    find_modules "$dir" >/dev/null
+    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:b:1	jar	$base2/pom.xml	$base2	$base2/src/main/java	$base2/src/main/resources	$(fingerprint "$base2/pom.xml")
 		g:with-space-in-path:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
 	EOF
-    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+    assertEquals "$expected" "$(cat "$TMPDIR/modules.tab")"
 }
 
 testFindNewModule() {
@@ -141,15 +138,16 @@ testFindNewModule() {
 		    <version>1</version>
 		</project>
 	EOF
-    echo -e "id2\tjar\tpom.xml\tBASE\tSRC\tRESRC\tHASH" > "$WD/modules.tab"
+    echo -e "id2\tjar\tpom.xml\tBASE\tSRC\tRESRC\tHASH" > "$WD/cache_modules.tab"
 
-    find_modules "$dir" >/dev/null
+    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		id2	jar	pom.xml	BASE	SRC	RESRC	HASH
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
 	EOF
-    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+    assertEquals "Module should be in cache_modules" "$expected" "$(cat "$WD/cache_modules.tab")"
+    assertEquals "Module should be in modules.tab" "$(echo "$expected"|tail -n1)" "$(cat "$TMPDIR/modules.tab")"
 }
 
 testFindUnchangedModule() {
@@ -166,14 +164,15 @@ testFindUnchangedModule() {
 		    <version>1</version>
 		</project>
 	EOF
-    echo -e "g:a:1\tjar\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$WD/modules.tab"
+    echo -e "g:a:1\tjar\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$WD/cache_modules.tab"
 
-    find_modules "$dir" >/dev/null
+    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
 	EOF
-    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+    assertEquals "Module should be in cache_modules" "$expected" "$(cat "$WD/cache_modules.tab")"
+    assertEquals "Module should be in modules.tab" "$expected" "$(cat "$TMPDIR/modules.tab")"
 }
 
 testFindChangedModule() {
@@ -191,14 +190,40 @@ testFindChangedModule() {
 		</project>
 	EOF
     echo -e "g:a:1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src\tDIFFERENT" \
-        > "$WD/modules.tab"
+        > "$WD/cache_modules.tab"
 
-    find_modules "$dir" >/dev/null
+    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
 
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
 	EOF
-    assertEquals "${expected}" "$(cat "$WD/modules.tab")"
+    assertEquals "Module should be in cache_modules" "$expected" "$(cat "$WD/cache_modules.tab")"
+    assertEquals "Module should be in modules.tab" "$expected" "$(cat "$TMPDIR/modules.tab")"
+}
+
+testFindCachedPom() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module1"
+    mkdir -p "$base1/src/main/java"
+    WD="$dir"
+    TMPDIR="$dir"
+    cat <<- EOF > "$base1/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>a</artifactId>
+		    <version>1</version>
+		</project>
+	EOF
+    echo -e "g:a:1\tpom\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$WD/cache_modules.tab"
+
+    find_modules "$dir" "$TMPDIR/modules.tab" >/dev/null
+
+    read -r -d '' expected <<- EOF
+		g:a:1	pom	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
+	EOF
+    assertEquals "Module should be in cache_modules" "$expected" "$(cat "$WD/cache_modules.tab")"
+    assertEquals "Module should not be in modules.tab" "" "$(cat "$TMPDIR/modules.tab")"
 }
 
 testEndToEnd() {
@@ -207,7 +232,6 @@ testEndToEnd() {
     local base2="$dir/module2"
     local base3="$dir/module3"
     mkdir -p "$base1/src/main/java" "$base2/src/main/java" "$base3/src/main/java"
-    WD="$dir"
     TMPDIR="$dir"
     cat <<- EOF > "$dir/pom.xml"
 		<project>

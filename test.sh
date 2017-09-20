@@ -279,6 +279,18 @@ testModuleSize() {
     assertEquals '8' "$actual"
 }
 
+testFindModulesNoArgumentsShouldFail() {
+    local actual="$(find_modules 2>&1)"
+
+    assertEquals "Illegal argument" "$actual"
+}
+
+testFindModulesOneArgumentShouldFail() {
+    local actual="$(find_modules WRONG 2>&1)"
+
+    assertEquals "Illegal argument" "$actual"
+}
+
 DIR="$( dirname "$(pwd)/$0" )"
 TESTMODE="on"
 source "$DIR/analyze.sh"
