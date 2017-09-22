@@ -4,7 +4,7 @@ testMvnDependencyTreeOneSimpleModule() {
     local dir="$(mktemp -d)"
     mkdir -p "$dir"
     TMPDIR="$dir"
-    echo -e "id1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src" \
+    echo -e "id1\tjar\tpom.xml\t${dir}\t${dir}/src\t${dir}/src" \
         > "$TMPDIR/modules.tab"
     cat <<- EOF > "$TMPDIR/pom.xml"
 		<project>
@@ -12,10 +12,14 @@ testMvnDependencyTreeOneSimpleModule() {
 		    <groupId>g</groupId>
 		    <artifactId>a</artifactId>
 		    <version>1</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
 		</project>
 	EOF
 
-    dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot"
+    dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot" >/dev/null
 
     read -r -d '' expected <<- TIL
 		digraph "g:a:jar:1" { 
@@ -40,6 +44,10 @@ testMvnDependencyTreeTwoModules() {
 		    <groupId>g</groupId>
 		    <artifactId>a</artifactId>
 		    <version>1</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
 		</project>
 	EOF
     cat <<- EOF > "$base2/pom.xml"
@@ -59,12 +67,12 @@ testMvnDependencyTreeTwoModules() {
         > "$base1/src/main/java/One.java"
     (cd "$base1" && mvn -B -q install -Dmaven.test.skip=true)
 
-    dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot"
+    dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot" >/dev/null
 
     expected=$(echo 'digraph "g:a:jar:1" { '\
-        | sed '$a\ } digraph "g:b:jar:1" { '\
-        | sed '$a\\t"g:b:jar:1" -> "g:a:jar:1:compile" ; '\
-        | sed '$a\ } ')
+        | awk '//END{print " } digraph \"g:b:jar:1\" { "}'\
+        | awk '//END{print "\t\"g:b:jar:1\" -> \"g:a:jar:1:compile\" ; "}'\
+        | awk '//END{print " } "}')
     assertEquals "${expected}" "$(cat "$TMPDIR/mvn.dot")"
 }
 
@@ -185,7 +193,7 @@ testFindChangedModule() {
 		    <version>1</version>
 		</project>
 	EOF
-    echo -e "g:a:1\tjar\tpom.xml\t${dir}\t${dir}/src\t{$dir}/src\tDIFFERENT" \
+    echo -e "g:a:1\tjar\tpom.xml\t${dir}\t${dir}/src\t${dir}/src\tDIFFERENT" \
         > "$dir/cache_modules.tab"
 
     find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
@@ -193,8 +201,8 @@ testFindChangedModule() {
     read -r -d '' expected <<- EOF
 		g:a:1	jar	$base1/pom.xml	$base1	$base1/src/main/java	$base1/src/main/resources	$(fingerprint "$base1/pom.xml")
 	EOF
-    assertEquals "Module should be in cache_modules" "$expected" "$(cat "$dir/cache_modules.tab")"
-    assertEquals "Module should be in modules.tab" "$expected" "$(cat "$TMPDIR/modules.tab")"
+    assertEquals "$expected" "$(cat "$dir/cache_modules.tab")"
+    assertEquals "$expected" "$(cat "$TMPDIR/modules.tab")"
 }
 
 testFindCachedPom() {
@@ -248,6 +256,10 @@ testEndToEnd() {
 		    <groupId>g</groupId>
 		    <artifactId>module-one</artifactId>
 		    <version>1</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
 		    <dependencies><dependency>
 		        <groupId>g</groupId>
 		        <artifactId>module-two</artifactId>
@@ -261,6 +273,10 @@ testEndToEnd() {
 		    <groupId>g</groupId>
 		    <artifactId>module-two</artifactId>
 		    <version>1</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
 		    <dependencies><dependency>
 		        <groupId>g</groupId>
 		        <artifactId>module-three</artifactId>
@@ -274,6 +290,10 @@ testEndToEnd() {
 		    <groupId>g</groupId>
 		    <artifactId>module-three</artifactId>
 		    <version>1</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
 		</project>
 	EOF
     cat <<- EOF > "$base1/src/main/java/com/m1/One.java"

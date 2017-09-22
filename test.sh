@@ -283,6 +283,32 @@ testFindModulesTooManyArguments() {
     assertEquals "Illegal argument" "$actual"
 }
 
+testFinalGraph() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/mvn-deps.dot"
+		digraph {
+		    "g:module-one:jar:1" -> "g:module-two:jar:1:compile" ; 
+		    "g:module-two:jar:1" -> "g:module-three:jar:1:compile" ; 
+		    "g:module-two:jar:1:compile" -> "g:module-three:jar:1:compile" ; 
+		}
+	EOF
+    cat <<- EOF > "$dir/deps.tsv"
+		g:module-one:1	g:module-three:1	1
+		g:module-one:1	g:module-two:1	2
+	EOF
+
+    local out="$(mvn_deps "$dir/deps.tsv" "$dir/mvn-deps.dot")"
+
+    read -r -d '' expected <<- EOF
+		digraph {
+		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
+		"g:module-two:1" -> "g:module-three:1";
+		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
+		}
+	EOF
+    assertEquals "$expected" "$out"
+}
+
 DIR="$( dirname "$(pwd)/$0" )"
 TESTMODE="on"
 source "$DIR/analyze.sh"
