@@ -95,7 +95,7 @@ find_modules() {
             awk "\$1 == \"${id}\" && \$2 != \"pom\"" "$cachefile" >> "$outfile"
             continue
         else
-            [ -f "$cachefile" ] && ( grep -v "^$id\t" "$cachefile" \
+            [ -f "$cachefile" ] && ( grep -v "^$id"$'\t' "$cachefile" \
                 > "$cachefile.2" ; mv "$cachefile.2" "$cachefile" )
         fi
         local pkg="$(mvneval "$f" project.packaging)"

@@ -70,9 +70,9 @@ testMvnDependencyTreeTwoModules() {
     dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot" >/dev/null
 
     expected=$(echo 'digraph "g:a:jar:1" { '\
-        | awk '//END{print " } digraph \"g:b:jar:1\" { "}'\
-        | awk '//END{print "\t\"g:b:jar:1\" -> \"g:a:jar:1:compile\" ; "}'\
-        | awk '//END{print " } "}')
+        | awk '{print}END{print " } digraph \"g:b:jar:1\" { "}'\
+        | awk '{print}END{print "\t\"g:b:jar:1\" -> \"g:a:jar:1:compile\" ; "}'\
+        | awk '{print}END{print " } "}')
     assertEquals "${expected}" "$(cat "$TMPDIR/mvn.dot")"
 }
 
