@@ -43,11 +43,12 @@ main() {
     usages "$modules" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv" >&3
     dependency_tree "$modules" "${includes:-*}" "$TMPDIR/mvn.dot" >&3
     # mvn org.apache.maven.plugins:maven-dependency-plugin:2.8:tree |awk "/Used undeclared/{s++} /Unused declared/{s--} s{print}" 
+    cut -f 1,5 "$modules" | sizes > "$TMPDIR/size.tab" #1,5=id,src
     echo "mvn deps" >&3
     if [ -n "$outputfile" ]; then
-        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot" > "$outputfile"
+        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot" "$TMPDIR/size.tab" > "$outputfile"
     else
-        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot"
+        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot" "$TMPDIR/size.tab"
     fi
 }
 
@@ -306,13 +307,39 @@ dependency_tree() {
         done
 }
 
+sizes() {
+    while IFS=$'\t' read id src ;do
+        echo -e "$id\t"$(module_size "$src")
+    done
+}
+
+module_size() {
+    local d="$1"
+    [ -n "$d" ] || error 'Invalid argument'
+    find "$d" -name \*.java -type f \
+        -exec wc -l {} \; \
+        | awk -F ' ' '{ s+=$1 } END{ print s }'
+}
+
+middle_line() {
+    [ $# -eq 1 ] && [ -n "$1" ] || error "Illegal argument"
+    local lines="$1"
+    if [ $lines -lt 2 ]; then
+        echo $lines
+    else
+        echo $(( $lines / 2 ))
+    fi
+}
+
 # reads mvn.dot and deps.tsv
 # to create result dot graph
 mvn_deps() {
-    [ $# -eq 2 ] && [ -f "$1" ] && [ -f "$2" ] || error "Illegal argument"
+    [ $# -eq 3 ] && [ -f "$1" ] && [ -f "$2" ] && [ -f "$3" ] || error "Illegal argument"
     local deps="$1"
     local mvn_dot="$2"
+    local sizes="$3"
     echo 'digraph {' > "$TMPDIR/mvn-deps.dot"
+#:    local median=$(head -n 
     cat "${mvn_dot}" \
         | grep --color=never '" -> "' \
         | sort \
@@ -354,14 +381,6 @@ mvn_deps() {
                 }
                 print "}";
             }' 
-}
-
-module_size() {
-    local d="$1"
-    [ -n "$d" ] || error 'Invalid argument'
-    find "$d" -name \*.java -type f \
-        -exec wc -l {} \; \
-        | awk -F ' ' '{ s+=$1 } END{ print s }'
 }
 
 [ -n "$TESTMODE" ] && return

@@ -265,6 +265,32 @@ testModuleSize() {
     assertEquals '8' "$actual"
 }
 
+testModuleSizes() {
+    local dir="$(mktemp -d)"
+    mkdir -p "$dir/one" "$dir/two"
+    cat <<- EOF > "$dir/one/One.java"
+		public class One{}
+		// This file is 2 lines
+	EOF
+    cat <<- EOF > "$dir/two/Two.java"
+		public class Two{}
+		// This file is
+		// 3 lines
+	EOF
+    read -r -d '' modules <<- EOF
+		g:module-one:1	$dir/one/
+		g:module-two:1	$dir/two/
+	EOF
+
+    local actual=$(echo "$modules" | sizes)
+
+    read -r -d '' expected <<- EOF
+		g:module-one:1	2
+		g:module-two:1	3
+	EOF
+    assertEquals "$expected" "$actual"
+}
+
 testFindModulesNoArgumentsShouldFail() {
     local actual="$(find_modules 2>&1)"
 
@@ -283,6 +309,22 @@ testFindModulesTooManyArguments() {
     assertEquals "Illegal argument" "$actual"
 }
 
+testMiddleLine0() {
+    assertEquals "0" "$(middle_line 0)"
+}
+testMiddleLine1() {
+    assertEquals "1" "$(middle_line 1)"
+}
+testMiddleLine2() {
+    assertEquals "1" "$(middle_line 2)"
+}
+testMiddleLine3() {
+    assertEquals "1" "$(middle_line 3)"
+}
+testMiddleLine4() {
+    assertEquals "2" "$(middle_line 4)"
+}
+
 testFinalGraph() {
     local dir="$(mktemp -d)"
     cat <<- EOF > "$dir/mvn-deps.dot"
@@ -296,9 +338,22 @@ testFinalGraph() {
 		g:module-one:1	g:module-three:1	1
 		g:module-one:1	g:module-two:1	2
 	EOF
+    cat <<- EOF > "$dir/sizes.tab"
+		g:module-one:1	10
+		g:module-two:1	20
+	EOF
 
-    local out="$(mvn_deps "$dir/deps.tsv" "$dir/mvn-deps.dot")"
+    local out="$(mvn_deps "$dir/deps.tsv" "$dir/mvn-deps.dot" "$dir/sizes.tab")"
 
+    read -r -d '' expected <<- EOF
+		digraph {
+		"g:module-one:1" [width=0.75,height=0.5];
+		"g:module-two:1" [width=1.5,height=1.0];
+		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
+		"g:module-two:1" -> "g:module-three:1";
+		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
+		}
+	EOF
     read -r -d '' expected <<- EOF
 		digraph {
 		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
