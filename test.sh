@@ -319,10 +319,25 @@ testMiddleLine2() {
     assertEquals "1" "$(middle_line 2)"
 }
 testMiddleLine3() {
-    assertEquals "1" "$(middle_line 3)"
+    assertEquals "2" "$(middle_line 3)"
 }
 testMiddleLine4() {
     assertEquals "2" "$(middle_line 4)"
+}
+testMiddleLine205() {
+    assertEquals "103" "$(middle_line 205)"
+}
+testMedianOneLine() {
+    assertEquals "4" "$(echo 4 | median 1)"
+}
+testMedianTwoLines() {
+    assertEquals "4" "$(echo -e "4\n6" | median 2)"
+}
+testMedianThreeLines() {
+    assertEquals "4" "$(echo -e "4\n9\n2" | median 3)"
+}
+testMedianFourLines() {
+    assertEquals "4" "$(echo -e "2\n6\n30\n4" | median 4)"
 }
 
 testFinalGraph() {
@@ -348,7 +363,7 @@ testFinalGraph() {
     read -r -d '' expected <<- EOF
 		digraph {
 		"g:module-one:1" [width=0.75,height=0.5];
-		"g:module-two:1" [width=1.5,height=1.0];
+		"g:module-two:1" [width=1.5,height=1];
 		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
 		"g:module-two:1" -> "g:module-three:1";
 		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];

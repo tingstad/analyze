@@ -316,19 +316,13 @@ sizes() {
 module_size() {
     local d="$1"
     [ -n "$d" ] || error 'Invalid argument'
+    if [ ! -d "$d" ]; then
+        echo "0"
+        return 0
+    fi
     find "$d" -name \*.java -type f \
         -exec wc -l {} \; \
         | awk -F ' ' '{ s+=$1 } END{ print s }'
-}
-
-middle_line() {
-    [ $# -eq 1 ] && [ -n "$1" ] || error "Illegal argument"
-    local lines="$1"
-    if [ $lines -lt 2 ]; then
-        echo $lines
-    else
-        echo $(( $lines / 2 ))
-    fi
 }
 
 # reads mvn.dot and deps.tsv
@@ -339,13 +333,14 @@ mvn_deps() {
     local mvn_dot="$2"
     local sizes="$3"
     echo 'digraph {' > "$TMPDIR/mvn-deps.dot"
-#:    local median=$(head -n 
     cat "${mvn_dot}" \
         | grep --color=never '" -> "' \
         | sort \
         | uniq \
         >> "$TMPDIR/mvn-deps.dot"
     echo '}' >> "$TMPDIR/mvn-deps.dot"
+    echo 'digraph {'
+    #print_node_sizes "$sizes"
     cat "$TMPDIR/mvn-deps.dot" \
         | grep --color=never '" -> "' \
         | sed 's/\s*//g;s/->/'$'\t''/;s/"//g' \
@@ -355,7 +350,6 @@ mvn_deps() {
                     split(line,a);
                     dep[a[1] FS a[2]]=a[3];
                 }
-                print "digraph {";
             }
             {
                 split($1,a,":");
@@ -381,6 +375,36 @@ mvn_deps() {
                 }
                 print "}";
             }' 
+}
+
+print_node_sizes() {
+    [ $# -eq 1 ] && [ -f "$1" ] || error "Illegal argument"
+    local file="$1"
+    local lines=$(line_count "$sizes")
+    if [ $lines -gt 0 ]; then
+        local median=$(cut -f 2 "$file" | median $lines)
+        cat "$file" | awk -v median=$median '{
+            wid=($2 * 0.75 / median)
+            hei=($2 * 0.5 / median)
+            print "\"" $1 "\" [fixedsize=true,width=" wid ",height=" hei "];"
+            }'
+    fi
+}
+
+median() {
+    local lines="$1"
+    local line=$(middle_line $lines)
+    sort -n | awk "NR == $line { print }"
+}
+
+middle_line() {
+    [ $# -eq 1 ] && [ -n "$1" ] && [ $1 -ge 0 ] || error "Illegal argument"
+    local lines="$1"
+    if [ $lines -lt 2 ]; then
+        echo $lines
+    else
+        echo $(( $((lines + 1)) / 2 ))
+    fi
 }
 
 [ -n "$TESTMODE" ] && return
