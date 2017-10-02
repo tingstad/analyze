@@ -322,7 +322,7 @@ module_size() {
     fi
     find "$d" -name \*.java -type f \
         -exec wc -l {} \; \
-        | awk -F ' ' '{ s+=$1 } END{ print s }'
+        | awk -F ' ' 'BEGIN{ s=0 } { s+=$1 } END{ print s }'
 }
 
 # reads mvn.dot and deps.tsv

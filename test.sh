@@ -265,6 +265,14 @@ testModuleSize() {
     assertEquals '8' "$actual"
 }
 
+testModuleSizeEmpty() {
+    local dir="$(mktemp -d)"
+
+    local actual=$(module_size "$dir")
+
+    assertEquals '0' "$actual"
+}
+
 testModuleSizes() {
     local dir="$(mktemp -d)"
     mkdir -p "$dir/one" "$dir/two"
