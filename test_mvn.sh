@@ -317,6 +317,9 @@ testEndToEnd() {
 
     read -r -d '' expected <<- EOF
 		digraph {
+		"g:module-three:1" [fixedsize=true,width=2.37171,height=1.58114];
+		"g:module-two:1" [fixedsize=true,width=2.37171,height=1.58114];
+		"g:module-one:1" [fixedsize=true,width=3.75,height=2.5];
 		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
 		"g:module-two:1" -> "g:module-three:1";
 		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];

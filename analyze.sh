@@ -340,7 +340,7 @@ mvn_deps() {
         >> "$TMPDIR/mvn-deps.dot"
     echo '}' >> "$TMPDIR/mvn-deps.dot"
     echo 'digraph {'
-    #print_node_sizes "$sizes"
+    print_node_sizes "$sizes"
     cat "$TMPDIR/mvn-deps.dot" \
         | grep --color=never '" -> "' \
         | sed 's/\s*//g;s/->/'$'\t''/;s/"//g' \
@@ -380,13 +380,24 @@ mvn_deps() {
 print_node_sizes() {
     [ $# -eq 1 ] && [ -f "$1" ] || error "Illegal argument"
     local file="$1"
-    local lines=$(line_count "$sizes")
+    local lines=$(line_count "$file")
     if [ $lines -gt 0 ]; then
         local median=$(cut -f 2 "$file" | median $lines)
-        cat "$file" | awk -v median=$median '{
-            wid=($2 * 0.75 / median)
-            hei=($2 * 0.5 / median)
-            print "\"" $1 "\" [fixedsize=true,width=" wid ",height=" hei "];"
+        local min=$(cut -f 2 "$file" | sort -n | head -n 1)
+        local max=$(cut -f 2 "$file" | sort -n | tail -n 1)
+        cat "$file" | awk -v median=$median -v min=$min -v max=$max 'BEGIN{
+                if (min == 0) min=1
+                if (max == 0) max=1
+                ratio=max/min
+                if (ratio > 3)
+                    ratio=3
+            }
+            {
+                size=($2 > 0 ? $2 : 1)
+                size=sqrt(size / max)
+                hei=(size * ratio)
+                wid=(size * ratio * 1.5)
+                print "\"" $1 "\" [fixedsize=true,width=" wid ",height=" hei "];"
             }'
     fi
 }

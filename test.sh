@@ -348,6 +348,86 @@ testMedianFourLines() {
     assertEquals "4" "$(echo -e "2\n6\n30\n4" | median 4)"
 }
 
+testNodeSizesBothZero() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/sizes.tab"
+		1st	0
+		2nd	0
+	EOF
+
+    local out="$(print_node_sizes "$dir/sizes.tab")"
+
+    read -r -d '' expected <<- EOF
+		"1st" [fixedsize=true,width=1.5,height=1];
+		"2nd" [fixedsize=true,width=1.5,height=1];
+	EOF
+    assertEquals "$expected" "$out"
+}
+
+testNodeSizesBothOne() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/sizes.tab"
+		1st	1
+		2nd	1
+	EOF
+
+    local out="$(print_node_sizes "$dir/sizes.tab")"
+
+    read -r -d '' expected <<- EOF
+		"1st" [fixedsize=true,width=1.5,height=1];
+		"2nd" [fixedsize=true,width=1.5,height=1];
+	EOF
+    assertEquals "$expected" "$out"
+}
+
+testNodeSizesBothTen() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/sizes.tab"
+		1st	10
+		2nd	10
+	EOF
+
+    local out="$(print_node_sizes "$dir/sizes.tab")"
+
+    read -r -d '' expected <<- EOF
+		"1st" [fixedsize=true,width=1.5,height=1];
+		"2nd" [fixedsize=true,width=1.5,height=1];
+	EOF
+    assertEquals "$expected" "$out"
+}
+
+testNodeSizes() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/sizes.tab"
+		1st	10
+		2nd	20
+	EOF
+
+    local out="$(print_node_sizes "$dir/sizes.tab")"
+
+    read -r -d '' expected <<- EOF
+		"1st" [fixedsize=true,width=2.12132,height=1.41421];
+		"2nd" [fixedsize=true,width=3,height=2];
+	EOF
+    assertEquals "$expected" "$out"
+}
+
+testNodeSizesBig() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/sizes.tab"
+		1st	10
+		2nd	9999
+	EOF
+
+    local out="$(print_node_sizes "$dir/sizes.tab")"
+
+    read -r -d '' expected <<- EOF
+		"1st" [fixedsize=true,width=0.14231,height=0.0948731];
+		"2nd" [fixedsize=true,width=4.5,height=3];
+	EOF
+    assertEquals "$expected" "$out"
+}
+
 testFinalGraph() {
     local dir="$(mktemp -d)"
     cat <<- EOF > "$dir/mvn-deps.dot"
@@ -370,15 +450,8 @@ testFinalGraph() {
 
     read -r -d '' expected <<- EOF
 		digraph {
-		"g:module-one:1" [width=0.75,height=0.5];
-		"g:module-two:1" [width=1.5,height=1];
-		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
-		"g:module-two:1" -> "g:module-three:1";
-		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
-		}
-	EOF
-    read -r -d '' expected <<- EOF
-		digraph {
+		"g:module-one:1" [fixedsize=true,width=2.12132,height=1.41421];
+		"g:module-two:1" [fixedsize=true,width=3,height=2];
 		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
 		"g:module-two:1" -> "g:module-three:1";
 		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
