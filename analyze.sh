@@ -136,7 +136,7 @@ is_empty() {
 line_count() {
     local file="$1"
     if [ -f "$file" ]; then
-        wc -l "$file" | cut -d ' ' -f 1
+        wc -l "$file" | awk '{ print $1 }'
     else
         echo "0"
     fi
