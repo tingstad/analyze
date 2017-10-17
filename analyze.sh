@@ -42,7 +42,7 @@ main() {
     packages "$modules" "$TMPDIR/packages-modules.tsv" >&3
     usages "$modules" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv" >&3
     dependency_tree "$modules" "${includes:-*}" "$TMPDIR/mvn.dot" >&3
-    # mvn org.apache.maven.plugins:maven-dependency-plugin:2.8:tree |awk "/Used undeclared/{s++} /Unused declared/{s--} s{print}" 
+    # mvn org.apache.maven.plugins:maven-dependency-plugin:2.10:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s{print}"
     cut -f 1,5 "$modules" | sizes > "$TMPDIR/size.tab" #1,5=id,src
     echo "mvn deps" >&3
     if [ -n "$outputfile" ]; then
@@ -303,7 +303,7 @@ dependency_tree() {
     rm "$outfile" 2>/dev/null || true
     cut -f 3,4 "$modules" \
         | while IFS=$'\t' read pom base ;do
-            (cd "$base" && mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:2.8:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$outfile" -DappendOutput=true)
+            (cd "$base" && mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:2.10:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$outfile" -DappendOutput=true)
         done
 }
 
