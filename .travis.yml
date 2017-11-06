@@ -9,4 +9,3 @@ install: true
 
 script:
     - bash test_all.sh
-
