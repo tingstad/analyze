@@ -440,6 +440,7 @@ testFinalGraph() {
     cat <<- EOF > "$dir/deps.tsv"
 		g:module-one:1	g:module-three:1	1
 		g:module-one:1	g:module-two:1	2
+		g:module-one:1	g:module-four:1	0
 	EOF
     cat <<- EOF > "$dir/sizes.tab"
 		g:module-one:1	10
@@ -455,6 +456,7 @@ testFinalGraph() {
 		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
 		"g:module-two:1" -> "g:module-three:1";
 		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
+		"g:module-one:1" -> "g:module-four:1" [color=red];
 		}
 	EOF
     assertEquals "$expected" "$out"

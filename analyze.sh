@@ -368,7 +368,8 @@ mvn_deps() {
                 for(k in dep){
                     if(!(k in mvn)){
                         split(k,a);
-                        print "\"" a[1] "\" -> \"" a[2] "\" [penwidth=" (dep[k] / 10) ",color=red];";
+                        width=(dep[k] / 10);
+                        print "\"" a[1] "\" -> \"" a[2] "\" [" (width ? "penwidth=" width "," : "") "color=red];";
                     } 
                     if((a[2] FS a[1]) in dep)
                         print k,"REVERSE!!!!!";
