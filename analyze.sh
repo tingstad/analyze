@@ -343,18 +343,19 @@ mvn_deps() {
     print_node_sizes "$sizes"
     cat "$TMPDIR/mvn-deps.dot" \
         | grep --color=never '" -> "' \
-        | sed 's/\s*//g;s/->/'$'\t''/;s/"//g' \
-        | awk 'BEGIN{
+        | tr -d ' \t"' \
+        | sed 's/->/'$'\t''/;' \
+        | awk 'BEGIN {
                 OFS="\t";
                 while(( getline line<"'"$deps"'") > 0 ) {
-                    split(line,a);
+                    split(line, a);
                     dep[a[1] FS a[2]]=a[3];
                 }
             }
             {
-                split($1,a,":");
+                split($1, a, ":");
                 from=a[1] ":" a[2] ":" a[4];
-                split($2,a,":");
+                split($2, a, ":");
                 to=a[1] ":" a[2] ":" a[4];
                 k=(from FS to);
                 if(!mvn[k]){
@@ -367,7 +368,7 @@ mvn_deps() {
             END{
                 for(k in dep){
                     if(!(k in mvn)){
-                        split(k,a);
+                        split(k, a);
                         width=(dep[k] / 10);
                         print "\"" a[1] "\" -> \"" a[2] "\" [" (width ? "penwidth=" width "," : "") "color=red];";
                     } 
