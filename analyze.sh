@@ -344,7 +344,7 @@ mvn_deps() {
     cat "$TMPDIR/mvn-deps.dot" \
         | grep --color=never '" -> "' \
         | tr -d ' \t"' \
-        | sed 's/->/'$'\t''/;' \
+        | sed 's/->/'$'\t''/' \
         | awk 'BEGIN {
                 OFS="\t";
                 while(( getline line<"'"$deps"'") > 0 ) {
