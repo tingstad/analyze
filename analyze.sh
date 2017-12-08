@@ -171,8 +171,8 @@ artifact_id_from_pom() {
     sed '/<parent>/,/<\/parent>/d' \
         | awk '
             function content(tag) {
-                s = substr(tag, index(tag, ">")+1);
-                return substr(s, 1, index(s, "<")-1);
+                s = substr(tag, index(tag, ">")+1)
+                return substr(s, 1, index(s, "<")-1)
             }
             !a && /<artifactId>/ { a=content($0) }
             !g && /<groupId>/ { g=content($0) }
@@ -205,26 +205,26 @@ packages() {
             END{
                 # delete packages not unique to a single module
                 for (k in map){ 
-                    v=map[k]; gsub(/[^\/]/,"",v); 
+                    v=map[k]; gsub(/[^\/]/,"",v)
                     if(length(v)>1) 
-                        delete map[k];
+                        delete map[k]
                 }
                 # keep only broadest packages
                 for (k in map){ 
-                    c=k;
+                    c=k
                     while(c in map){
-                        i=c;
-                        gsub(/\/[^\/]*$/,"",c);
-                        if (i == c) break;
+                        i=c
+                        gsub(/\/[^\/]*$/,"",c)
+                        if (i == c) break
                     }
-                    map2[i]=map[k];
+                    map2[i]=map[k]
                 }
                 # print results
                 for (k in map2){
-                    v=map2[k];
-                    gsub(/[\/]/,"",v);
-                    gsub(/[\/]/,".",k);
-                    print k,v;
+                    v=map2[k]
+                    gsub(/[\/]/,"",v)
+                    gsub(/[\/]/,".",k)
+                    print k,v
                 }  
             }' \
         | sort \
@@ -247,11 +247,11 @@ usages() {
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
             -exec fgrep --color=never --binary-files=without-match -H -o -f "$TMPDIR/packages.txt" {} \; \
             | awk -F: 'BEGIN{OFS="\t"} {
-                        d[1]="'"$src"'"; d[2]="'"$resource"'";
+                        d[1]="'"$src"'"; d[2]="'"$resource"'"
                         for(s in d){
                             if(index($1,d[s])==1) {
-                                $1=substr($1,length(d[s])+2);
-                                break;
+                                $1=substr($1,length(d[s])+2)
+                                break
                             }
                         } print "'"$id"'",$1,$2; }' \
             >> "$detailed"
@@ -268,22 +268,22 @@ usages() {
     
     cat "$TMPDIR/deps-sum-detailed.tsv" \
         | awk 'BEGIN{
-                OFS="\t";
+                OFS="\t"
                 while(( getline line<"'${packages_modules_file}'") > 0 ) {
-                    split(line,a);
-                    modul[a[1]]=a[2];
+                    split(line,a)
+                    modul[a[1]]=a[2]
                 }
             }
             {
-                from=$2; to=modul[$3];
+                from=$2; to=modul[$3]
                 if(from != to){
-                    dep[from "/" to]+=$1;
+                    dep[from "/" to]+=$1
                 }
             }
             END{
                 for(k in dep){
-                    split(k,a,"/");
-                    print a[1],a[2],dep[k];
+                    split(k,a,"/")
+                    print a[1],a[2],dep[k]
                 }
             }' \
         | sort \
@@ -346,36 +346,36 @@ mvn_deps() {
         | tr -d ' \t"' \
         | sed 's/->/'$'\t''/' \
         | awk 'BEGIN {
-                OFS="\t";
+                OFS="\t"
                 while(( getline line<"'"$deps"'") > 0 ) {
-                    split(line, a);
-                    dep[a[1] FS a[2]]=a[3];
+                    split(line, a)
+                    dep[a[1] FS a[2]]=a[3]
                 }
             }
             {
-                split($1, a, ":");
-                from=a[1] ":" a[2] ":" a[4];
-                split($2, a, ":");
-                to=a[1] ":" a[2] ":" a[4];
-                k=(from FS to);
+                split($1, a, ":")
+                from=a[1] ":" a[2] ":" a[4]
+                split($2, a, ":")
+                to=a[1] ":" a[2] ":" a[4]
+                k=(from FS to)
                 if(!mvn[k]){
-                    mvn[k]=1;
-                    deps=dep[from FS to];
-                    width=(deps ? (deps / 10) : 0); 
-                    print "\"" from "\" -> \"" to "\"" (width ? " [penwidth=" width "]" : "") ";";
+                    mvn[k]=1
+                    deps=dep[from FS to]
+                    width=(deps ? (deps / 10) : 0)
+                    print "\"" from "\" -> \"" to "\"" (width ? " [penwidth=" width "]" : "") ";"
                 }
             }
             END{
                 for(k in dep){
                     if(!(k in mvn)){
-                        split(k, a);
-                        width=(dep[k] / 10);
-                        print "\"" a[1] "\" -> \"" a[2] "\" [" (width ? "penwidth=" width "," : "") "color=red];";
+                        split(k, a)
+                        width=(dep[k] / 10)
+                        print "\"" a[1] "\" -> \"" a[2] "\" [" (width ? "penwidth=" width "," : "") "color=red];"
                     } 
                     if((a[2] FS a[1]) in dep)
-                        print k,"REVERSE!!!!!";
+                        print k,"REVERSE!!!!!"
                 }
-                print "}";
+                print "}"
             }' 
 }
 
