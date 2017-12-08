@@ -42,7 +42,8 @@ main() {
     packages "$modules" "$TMPDIR/packages-modules.tsv" >&3
     usages "$modules" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv" >&3
     dependency_tree "$modules" "${includes:-*}" "$TMPDIR/mvn.dot" >&3
-    # mvn org.apache.maven.plugins:maven-dependency-plugin:2.10:analyze |awk "/Used undeclared/{s++} /Unused declared/{s--} s{print}"
+    undeclared_use "$modules" "$TMPDIR/undeclared.tab" >&3
+    concat_deps "$TMPDIR/deps.tsv" "$TMPDIR/undeclared.tab" >&3
     cut -f 1,5 "$modules" | sizes > "$TMPDIR/size.tab" #1,5=id,src
     echo "mvn deps" >&3
     if [ -n "$outputfile" ]; then
@@ -305,6 +306,50 @@ dependency_tree() {
         | while IFS=$'\t' read pom base ;do
             (cd "$base" && mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:2.10:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$outfile" -DappendOutput=true)
         done
+}
+
+undeclared_use() {
+    [ $# -eq 2 ] && [ -f "$1" ] && [ -n "$2" ] || error "Illegal argument"
+    local modules="$1"
+    local targetfile="$2"
+    echo "undeclared use"
+    cut -f 1,3,4 "$modules" \
+        | while IFS=$'\t' read id pom base ;do
+            (cd "$base" \
+                && mvn -B org.apache.maven.plugins:maven-dependency-plugin:2.10:analyze \
+                    -DscriptableOutput=true \
+                | parse_mvn_analyze "$id" \
+                >> "$targetfile"
+            )
+        done
+}
+
+parse_mvn_analyze() {
+    [ $# -eq 1 ] && [ -n "$1" ] || error "Illegal argument"
+    local id="$1"
+    grep '^$$%%%' \
+    | awk -F : '
+        {
+            OFS = "\t"
+            groupId = $3
+            artifactId = $4
+            version = $7
+            from = "'"$id"'"
+            to = groupId ":" artifactId ":" version
+            print from, to, 0
+        }'
+}
+
+concat_deps() {
+    [ $# -eq 2 ] && [ -f "$1" ] && [ -f "$2" ] || error "Illegal argument"
+    local deps="$1"
+    local undeclared="$2"
+    echo "concat dependencies"
+    if is_empty "$deps"; then
+        cat "$undeclared" > "$deps"
+    elif ! is_empty "$undeclared"; then
+        fgrep -v -f <(cut -f 1-2 "$deps") "$undeclared" >> "$deps"
+    fi
 }
 
 sizes() {

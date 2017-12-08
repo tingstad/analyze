@@ -244,6 +244,74 @@ testThatEffectivePomFailsWithutArgument() {
     assertEquals 'Invalid argument' "$actual"
 }
 
+testParseMvnAnalyzeNoWarnings() {
+    assertEquals "" "$(echo "" | parse_mvn_analyze g:a:1)"
+}
+
+testParseMvnAnalyzeUsedUndeclared() {
+    actual=$(echo '$$%%%:/some/pom.xml:g:b:jar:null:2:compile' \
+        | parse_mvn_analyze g:a:1)
+
+    assertEquals "$(echo -e "g:a:1\tg:b:2\t0")" "$actual"
+}
+
+testConcatDepsNoUndeclared() {
+    local dir="$(mktemp -d)"
+    touch "$dir/undeclared.tab"
+    cat <<- EOF > "$dir/deps.tsv"
+		g:module-one:1	g:module-two:1	2
+	EOF
+    cp "$dir/deps.tsv" "$dir/expected"
+
+    concat_deps "$dir/deps.tsv" "$dir/undeclared.tab" >/dev/null
+
+    assertEquals "$(cat "$dir/expected")" "$(cat "$dir/deps.tsv")"
+}
+
+testConcatDepsOnlyUndeclared() {
+    local dir="$(mktemp -d)"
+    touch "$dir/deps.tsv"
+    cat <<- EOF > "$dir/undeclared.tab"
+		g:module-one:1	g:module-two:1	0
+	EOF
+    cp "$dir/undeclared.tab" "$dir/expected"
+
+    concat_deps "$dir/deps.tsv" "$dir/undeclared.tab" >/dev/null
+
+    assertEquals "$(cat "$dir/expected")" "$(cat "$dir/deps.tsv")"
+}
+
+testConcatDepsNoOverlap() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/deps.tsv"
+		g:module-one:1	g:module-two:1	2
+	EOF
+    cat <<- EOF > "$dir/undeclared.tab"
+		g:module-one:1	g:module-six:1	0
+	EOF
+    cat "$dir/deps.tsv" "$dir/undeclared.tab" > "$dir/expected"
+
+    concat_deps "$dir/deps.tsv" "$dir/undeclared.tab" >/dev/null
+
+    assertEquals "$(cat "$dir/expected")" "$(cat "$dir/deps.tsv")"
+}
+
+testConcatDepsExisting() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/deps.tsv"
+		g:module-one:1	g:module-two:1	2
+		g:module-one:1	g:module-six:2	0
+	EOF
+    cat <<- EOF > "$dir/undeclared.tab"
+		g:module-one:1	g:module-two:1	0
+	EOF
+    cp "$dir/deps.tsv" "$dir/expected"
+
+    concat_deps "$dir/deps.tsv" "$dir/undeclared.tab" >/dev/null
+
+    assertEquals "$(cat "$dir/expected")" "$(cat "$dir/deps.tsv")"
+}
+
 testModuleSize() {
     local dir="$(mktemp -d)"
     mkdir -p "$dir/src/pkg"

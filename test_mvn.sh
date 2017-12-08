@@ -233,6 +233,89 @@ testFindCachedPom() {
     assertEquals "Module should not be in modules.tab" "" "$(cat "$TMPDIR/modules.tab")"
 }
 
+testUndeclaredUse() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module1"
+    local base2="$dir/module2"
+    local base3="$dir/module3"
+    mkdir -p "$base1/src/main/java/com" "$base2/src/main/java/com" "$base3/src/main/java/com"
+    TMPDIR="$dir"
+    cat <<- EOF > "$base1/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>a</artifactId>
+		    <version>1</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
+		    <dependencies><dependency>
+		        <groupId>g</groupId>
+		        <artifactId>b</artifactId>
+		        <version>1</version>
+		    </dependency></dependencies>
+		</project>
+	EOF
+    cat <<- EOF > "$base2/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>b</artifactId>
+		    <version>1</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
+		    <dependencies><dependency>
+		        <groupId>g</groupId>
+		        <artifactId>c</artifactId>
+		        <version>1</version>
+		    </dependency></dependencies>
+		</project>
+	EOF
+    cat <<- EOF > "$base3/pom.xml"
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>g</groupId>
+		    <artifactId>c</artifactId>
+		    <version>1</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
+		</project>
+	EOF
+    cat <<- EOF > "$base1/src/main/java/com/A.java"
+		package com;
+		import com.C;
+		public class A { C c; }
+	EOF
+    cat <<- EOF > "$base2/src/main/java/com/B.java"
+		package com;
+		public class B {}
+	EOF
+    cat <<- EOF > "$base3/src/main/java/com/C.java"
+		package com;
+		public class C {}
+	EOF
+    for d in "$base3" "$base2" "$base1"; do
+        (cd "$d" && mvn -B -q -o install -Dmaven.test.skip=true)
+    done
+    cat <<- EOF > "$TMPDIR/modules.tab"
+		g:a:1	jar	pom.xml	${base1}
+		g:b:1	jar	pom.xml	${base2}
+		g:c:1	jar	pom.xml	${base3}
+	EOF
+
+    undeclared_use "$TMPDIR/modules.tab" "$TMPDIR/undeclared.tab" >/dev/null
+
+    read -r -d '' expected <<- EOF
+		g:a:1	g:c:1	0
+	EOF
+    assertEquals "$expected" "$(cat "$TMPDIR/undeclared.tab")"
+}
+
 testEndToEnd() {
     local dir="$(mktemp -d)"
     local base1="$dir/module1"
