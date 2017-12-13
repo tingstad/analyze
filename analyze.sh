@@ -37,7 +37,7 @@ main() {
     fi
 
     echo "Using temp dir $TMPDIR" >&3
-    local modules="$TMPDIR/modules.tab" 
+    local modules="$TMPDIR/modules.tab"
     find_modules "$target_dir" "$work_dir" "$modules" >&3
     packages "$modules" "$TMPDIR/packages-modules.tsv" >&3
     usages "$modules" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv" >&3
@@ -174,9 +174,9 @@ artifact_id_from_pom() {
                 s = substr(tag, index(tag, ">")+1)
                 return substr(s, 1, index(s, "<")-1)
             }
-            !a && /<artifactId>/ { a=content($0) }
-            !g && /<groupId>/ { g=content($0) }
-            !v && /<version>/ { v=content($0) }
+            !a && /<artifactId>/ { a = content($0) }
+            !g && /<groupId>/ { g = content($0) }
+            !v && /<version>/ { v = content($0) }
             END { print g ":" a ":" v }'
 }
 
@@ -197,35 +197,35 @@ packages() {
         local len="${#src}"
         find "$src" -mindepth 1 -type d \
         | cut -c $[ $len + 2 ]- \
-        | awk '{ print "'"$id"'\t" $0 }' 
+        | awk '{ print "'"$id"'\t" $0 }'
     done \
-        | awk 'BEGIN{ OFS="\t"; }
-            { map[$2]=($1 "/" map[$2]); } 
+        | awk 'BEGIN { OFS = "\t"; }
+            { map[$2] = ($1 "/" map[$2]); }
             # map[pkg] = id1/id2/
-            END{
+            END {
                 # delete packages not unique to a single module
-                for (k in map){ 
-                    v=map[k]; gsub(/[^\/]/,"",v)
-                    if(length(v)>1) 
+                for (k in map) {
+                    v = map[k]; gsub(/[^\/]/, "", v)
+                    if (length(v) > 1)
                         delete map[k]
                 }
                 # keep only broadest packages
-                for (k in map){ 
-                    c=k
-                    while(c in map){
-                        i=c
-                        gsub(/\/[^\/]*$/,"",c)
+                for (k in map) {
+                    c = k
+                    while (c in map) {
+                        i = c
+                        gsub(/\/[^\/]*$/, "", c)
                         if (i == c) break
                     }
-                    map2[i]=map[k]
+                    map2[i] = map[k]
                 }
                 # print results
-                for (k in map2){
-                    v=map2[k]
-                    gsub(/[\/]/,"",v)
-                    gsub(/[\/]/,".",k)
-                    print k,v
-                }  
+                for (k in map2) {
+                    v = map2[k]
+                    gsub(/[\/]/, "", v)
+                    gsub(/[\/]/, ".", k)
+                    print k, v
+                }
             }' \
         | sort \
         >> "$outfile"
@@ -246,18 +246,18 @@ usages() {
     | while IFS=$'\t' read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
             -exec fgrep --color=never --binary-files=without-match -H -o -f "$TMPDIR/packages.txt" {} \; \
-            | awk -F: 'BEGIN{OFS="\t"} {
-                        d[1]="'"$src"'"; d[2]="'"$resource"'"
-                        for(s in d){
-                            if(index($1,d[s])==1) {
-                                $1=substr($1,length(d[s])+2)
+            | awk -F: 'BEGIN { OFS = "\t" } {
+                        d[1] = "'"$src"'"; d[2] = "'"$resource"'"
+                        for (s in d) {
+                            if (index($1, d[s]) == 1) {
+                                $1 = substr($1, length(d[s]) + 2)
                                 break
                             }
-                        } print "'"$id"'",$1,$2; }' \
+                        } print "'"$id"'", $1, $2; }' \
             >> "$detailed"
-    done 
+    done
     # detailed for debug
-    
+
     cat "$detailed" \
         | cut -f 1,3 \
         | sort \
@@ -265,25 +265,25 @@ usages() {
         | sed 's/^ *//' \
         | tr ' ' \\t \
         > "$TMPDIR/deps-sum-detailed.tsv"
-    
+
     cat "$TMPDIR/deps-sum-detailed.tsv" \
-        | awk 'BEGIN{
-                OFS="\t"
-                while(( getline line<"'${packages_modules_file}'") > 0 ) {
-                    split(line,a)
-                    modul[a[1]]=a[2]
+        | awk 'BEGIN {
+                OFS = "\t"
+                while ( (getline line<"'${packages_modules_file}'") > 0 ) {
+                    split(line, a)
+                    modul[a[1]] = a[2]
                 }
             }
             {
-                from=$2; to=modul[$3]
-                if(from != to){
-                    dep[from "/" to]+=$1
+                from = $2; to = modul[$3]
+                if (from != to) {
+                    dep[from "/" to] += $1
                 }
             }
-            END{
-                for(k in dep){
-                    split(k,a,"/")
-                    print a[1],a[2],dep[k]
+            END {
+                for (k in dep) {
+                    split(k, a, "/")
+                    print a[1], a[2], dep[k]
                 }
             }' \
         | sort \
@@ -346,37 +346,37 @@ mvn_deps() {
         | tr -d ' \t"' \
         | sed 's/->/'$'\t''/' \
         | awk 'BEGIN {
-                OFS="\t"
-                while(( getline line<"'"$deps"'") > 0 ) {
+                OFS = "\t"
+                while ( (getline line<"'"$deps"'") > 0 ) {
                     split(line, a)
-                    dep[a[1] FS a[2]]=a[3]
+                    dep[a[1] FS a[2]] = a[3]
                 }
             }
             {
                 split($1, a, ":")
-                from=a[1] ":" a[2] ":" a[4]
+                from = a[1] ":" a[2] ":" a[4]
                 split($2, a, ":")
-                to=a[1] ":" a[2] ":" a[4]
-                k=(from FS to)
-                if(!mvn[k]){
-                    mvn[k]=1
-                    deps=dep[from FS to]
-                    width=(deps ? (deps / 10) : 0)
+                to = a[1] ":" a[2] ":" a[4]
+                k = (from FS to)
+                if (!mvn[k]) {
+                    mvn[k] = 1
+                    deps = dep[from FS to]
+                    width = (deps ? (deps / 10) : 0)
                     print "\"" from "\" -> \"" to "\"" (width ? " [penwidth=" width "]" : "") ";"
                 }
             }
-            END{
-                for(k in dep){
-                    if(!(k in mvn)){
+            END {
+                for (k in dep) {
+                    if (!(k in mvn)) {
                         split(k, a)
-                        width=(dep[k] / 10)
+                        width = (dep[k] / 10)
                         print "\"" a[1] "\" -> \"" a[2] "\" [" (width ? "penwidth=" width "," : "") "color=red];"
-                    } 
-                    if((a[2] FS a[1]) in dep)
+                    }
+                    if ((a[2] FS a[1]) in dep)
                         print k,"REVERSE!!!!!"
                 }
                 print "}"
-            }' 
+            }'
 }
 
 print_node_sizes() {
@@ -387,18 +387,19 @@ print_node_sizes() {
         local median=$(cut -f 2 "$file" | median $lines)
         local min=$(cut -f 2 "$file" | sort -n | head -n 1)
         local max=$(cut -f 2 "$file" | sort -n | tail -n 1)
-        cat "$file" | awk -v median=$median -v min=$min -v max=$max 'BEGIN{
-                if (min == 0) min=1
-                if (max == 0) max=1
-                ratio=max/min
+        cat "$file" | awk -v median=$median -v min=$min -v max=$max '
+            BEGIN {
+                if (min == 0) min = 1
+                if (max == 0) max = 1
+                ratio = max / min
                 if (ratio > 3)
-                    ratio=3
+                    ratio = 3
             }
             {
-                size=($2 > 0 ? $2 : 1)
-                size=sqrt(size / max)
-                hei=(size * ratio)
-                wid=(size * ratio * 1.5)
+                size = ($2 > 0 ? $2 : 1)
+                size = sqrt(size / max)
+                hei = (size * ratio)
+                wid = (size * ratio * 1.5)
                 print "\"" $1 "\" [fixedsize=true,width=" wid ",height=" hei "];"
             }'
     fi
