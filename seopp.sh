@@ -1,4 +1,4 @@
-sed -r 's/"[^"]*seopp-([^:]+):[0-9.]*-SNAPSHOT"/"\1"/g' |\
+./seopp-anon.sh |\
 ( read -r -d '' APPEND <<- EOF
 	"kunde" -> "kjerne" [label=http style=dashed];
 	"admin" -> "kjerne" [label=http style=dashed];
