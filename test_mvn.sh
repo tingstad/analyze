@@ -7,16 +7,7 @@ testMvnDependencyTreeOneSimpleModule() {
     echo -e "id1\tjar\tpom.xml\t${dir}\t${dir}/src\t${dir}/src" \
         > "$TMPDIR/modules.tab"
     cat <<- EOF > "$TMPDIR/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		    <properties>
-		        <maven.compiler.source>1.6</maven.compiler.source>
-		        <maven.compiler.target>1.6</maven.compiler.target>
-		    </properties>
-		</project>
+		$(project g a 1)
 	EOF
 
     dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot" >/dev/null
@@ -39,27 +30,12 @@ testMvnDependencyTreeTwoModules() {
             "id2\tjar\tpom.xml\t${base2}\t${base2}/src\t${base2}/src" \
         > "$TMPDIR/modules.tab"
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		    <properties>
-		        <maven.compiler.source>1.6</maven.compiler.source>
-		        <maven.compiler.target>1.6</maven.compiler.target>
-		    </properties>
-		</project>
+		$(project g a 1)
 	EOF
     cat <<- EOF > "$base2/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>b</artifactId>
-		    <version>1</version>
-		    <dependencies>
-		        $(dependency g a 1)
-		    </dependencies>
-		</project>
+		$(project g b 1 \
+		    "$(dependency g a 1)" \
+		)
 	EOF
     echo -e "public class One {}" \
         > "$base1/src/main/java/One.java"
@@ -84,12 +60,7 @@ testFindOneModule() {
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		</project>
+		$(project g a 1)
 	EOF
 
     find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
@@ -108,20 +79,10 @@ testFindTwoModules() {
     mkdir -p "$base2/src/main/java"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>with-space-in-path</artifactId>
-		    <version>1</version>
-		</project>
+		$(project g with-space-in-path 1)
 	EOF
     cat <<- EOF > "$base2/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>b</artifactId>
-		    <version>1</version>
-		</project>
+		$(project g b 1)
 	EOF
 
     find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
@@ -139,12 +100,7 @@ testFindNewModule() {
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		</project>
+		$(project g a 1)
 	EOF
     echo -e "id2\tjar\tpom.xml\tBASE\tSRC\tRESRC\tHASH" > "$dir/cache_modules.tab"
 
@@ -164,12 +120,7 @@ testFindUnchangedModule() {
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		</project>
+		$(project g a 1)
 	EOF
     echo -e "g:a:1\tjar\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$dir/cache_modules.tab"
 
@@ -188,12 +139,7 @@ testFindChangedModule() {
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		</project>
+		$(project g a 1)
 	EOF
     echo -e "g:a:1\tjar\tpom.xml\t${dir}\t${dir}/src\t${dir}/src\tDIFFERENT" \
         > "$dir/cache_modules.tab"
@@ -213,12 +159,7 @@ testFindCachedPom() {
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		</project>
+		$(project g a 1)
 	EOF
     echo -e "g:a:1\tpom\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$dir/cache_modules.tab"
 
@@ -239,46 +180,17 @@ testUndeclaredUse() {
     mkdir -p "$base1/src/main/java/com" "$base2/src/main/java/com" "$base3/src/main/java/com"
     TMPDIR="$dir"
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>a</artifactId>
-		    <version>1</version>
-		    <properties>
-		        <maven.compiler.source>1.6</maven.compiler.source>
-		        <maven.compiler.target>1.6</maven.compiler.target>
-		    </properties>
-		    <dependencies>
-		        $(dependency g b 1)
-		    </dependencies>
-		</project>
+		$(project g a 1 \
+		    "$(dependency g b 1)" \
+		)
 	EOF
     cat <<- EOF > "$base2/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>b</artifactId>
-		    <version>1</version>
-		    <properties>
-		        <maven.compiler.source>1.6</maven.compiler.source>
-		        <maven.compiler.target>1.6</maven.compiler.target>
-		    </properties>
-		    <dependencies>
-		        $(dependency g c 1)
-		    </dependencies>
-		</project>
+		$(project g b 1 \
+		    "$(dependency g c 1)" \
+		)
 	EOF
     cat <<- EOF > "$base3/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>c</artifactId>
-		    <version>1</version>
-		    <properties>
-		        <maven.compiler.source>1.6</maven.compiler.source>
-		        <maven.compiler.target>1.6</maven.compiler.target>
-		    </properties>
-		</project>
+		$(project g c 1)
 	EOF
     cat <<- EOF > "$base1/src/main/java/com/A.java"
 		package com;
@@ -332,46 +244,17 @@ testEndToEnd() {
 		</project>
 	EOF
     cat <<- EOF > "$base1/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>module-one</artifactId>
-		    <version>1</version>
-		    <properties>
-		        <maven.compiler.source>1.6</maven.compiler.source>
-		        <maven.compiler.target>1.6</maven.compiler.target>
-		    </properties>
-		    <dependencies>
-		        $(dependency g module-two 1)
-		    </dependencies>
-		</project>
+		$(project g module-one 1 \
+		    "$(dependency g module-two 1)" \
+		)
 	EOF
     cat <<- EOF > "$base2/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>module-two</artifactId>
-		    <version>1</version>
-		    <properties>
-		        <maven.compiler.source>1.6</maven.compiler.source>
-		        <maven.compiler.target>1.6</maven.compiler.target>
-		    </properties>
-		    <dependencies>
-		        $(dependency g module-three 1)
-		    </dependencies>
-		</project>
+		$(project g module-two 1 \
+		    "$(dependency g module-three 1)" \
+		)
 	EOF
     cat <<- EOF > "$base3/pom.xml"
-		<project>
-		    <modelVersion>4.0.0</modelVersion>
-		    <groupId>g</groupId>
-		    <artifactId>module-three</artifactId>
-		    <version>1</version>
-		    <properties>
-		        <maven.compiler.source>1.6</maven.compiler.source>
-		        <maven.compiler.target>1.6</maven.compiler.target>
-		    </properties>
-		</project>
+		$(project g module-three 1)
 	EOF
     cat <<- EOF > "$base1/src/main/java/com/m1/One.java"
 		package com.m1;
@@ -403,6 +286,22 @@ testEndToEnd() {
 		}
 	EOF
     assertEquals "$expected" "$out"
+}
+
+project() {
+    cat <<- EOF
+		<project>
+		    <modelVersion>4.0.0</modelVersion>
+		    <groupId>$1</groupId>
+		    <artifactId>$2</artifactId>
+		    <version>$3</version>
+		    <properties>
+		        <maven.compiler.source>1.6</maven.compiler.source>
+		        <maven.compiler.target>1.6</maven.compiler.target>
+		    </properties>
+		    <dependencies>$4</dependencies>
+		</project>
+	EOF
 }
 
 dependency() {
