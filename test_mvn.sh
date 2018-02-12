@@ -43,6 +43,31 @@ testMvnDependencyTreeTwoModules() {
     assertEquals "${expected}" "$(cat "$TMPDIR/mvn.dot")"
 }
 
+testMvnDependencyTreeTestScope() {
+    local dir="$(mktemp -d)"
+    local base1="$dir/module1"
+    local base2="$dir/module2"
+    mkdir -p "$base1/src/main/java"
+    mkdir -p "$base2/src/main/java"
+    TMPDIR="$dir"
+    echo -e "id1\tjar\tpom.xml\t${base1}\t${base1}/src\t${base1}/src\n" \
+            "id2\tjar\tpom.xml\t${base2}\t${base2}/src\t${base2}/src" \
+        > "$TMPDIR/modules.tab"
+    project g a 1 > "$base1/pom.xml"
+    project g b 1 \
+        "$(dependency g a 1 test)" > "$base2/pom.xml"
+    echo -e "public class One {}" \
+        > "$base1/src/main/java/One.java"
+    (cd "$base1" && mvn -B -q install -Dmaven.test.skip=true)
+
+    dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot" >/dev/null
+
+    expected=$(echo 'digraph "g:a:jar:1" { ' \
+        | append ' } digraph "g:b:jar:1" { ' \
+        | append ' }')
+    assertEquals "$expected " "$(cat "$TMPDIR/mvn.dot")"
+}
+
 append() {
     awk -v str="$1" '{ print } END{ print str }'
 }
@@ -273,6 +298,7 @@ dependency() {
 		        <groupId>$1</groupId>
 		        <artifactId>$2</artifactId>
 		        <version>$3</version>
+		        <scope>${4-compile}</scope>
 		    </dependency>
 	EOF
 }

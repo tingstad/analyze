@@ -304,7 +304,7 @@ dependency_tree() {
     rm "$outfile" 2>/dev/null || true
     cut -f 3,4 "$modules" \
         | while IFS=$'\t' read pom base ;do
-            (cd "$base" && mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:2.10:tree -Dincludes="$includes" -DoutputType=dot -DoutputFile="$outfile" -DappendOutput=true)
+            (cd "$base" && mvn -B -q org.apache.maven.plugins:maven-dependency-plugin:2.10:tree -Dincludes="$includes" -Dscope=runtime -DoutputType=dot -DoutputFile="$outfile" -DappendOutput=true)
         done
 }
 
@@ -317,6 +317,7 @@ undeclared_use() {
         | while IFS=$'\t' read id pom base ;do
             (cd "$base" \
                 && mvn -B org.apache.maven.plugins:maven-dependency-plugin:2.10:analyze \
+                    -DignoreNonCompile=true \
                     -DscriptableOutput=true \
                 | parse_mvn_analyze "$id" \
                 >> "$targetfile"
