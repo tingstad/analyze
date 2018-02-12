@@ -56,11 +56,9 @@ testMvnDependencyTreeTwoModules() {
 		    <groupId>g</groupId>
 		    <artifactId>b</artifactId>
 		    <version>1</version>
-		    <dependencies><dependency>
-		        <groupId>g</groupId>
-		        <artifactId>a</artifactId>
-		        <version>1</version>
-		    </dependency></dependencies>
+		    <dependencies>
+		        $(dependency g a 1)
+		    </dependencies>
 		</project>
 	EOF
     echo -e "public class One {}" \
@@ -250,11 +248,9 @@ testUndeclaredUse() {
 		        <maven.compiler.source>1.6</maven.compiler.source>
 		        <maven.compiler.target>1.6</maven.compiler.target>
 		    </properties>
-		    <dependencies><dependency>
-		        <groupId>g</groupId>
-		        <artifactId>b</artifactId>
-		        <version>1</version>
-		    </dependency></dependencies>
+		    <dependencies>
+		        $(dependency g b 1)
+		    </dependencies>
 		</project>
 	EOF
     cat <<- EOF > "$base2/pom.xml"
@@ -267,11 +263,9 @@ testUndeclaredUse() {
 		        <maven.compiler.source>1.6</maven.compiler.source>
 		        <maven.compiler.target>1.6</maven.compiler.target>
 		    </properties>
-		    <dependencies><dependency>
-		        <groupId>g</groupId>
-		        <artifactId>c</artifactId>
-		        <version>1</version>
-		    </dependency></dependencies>
+		    <dependencies>
+		        $(dependency g c 1)
+		    </dependencies>
 		</project>
 	EOF
     cat <<- EOF > "$base3/pom.xml"
@@ -347,11 +341,9 @@ testEndToEnd() {
 		        <maven.compiler.source>1.6</maven.compiler.source>
 		        <maven.compiler.target>1.6</maven.compiler.target>
 		    </properties>
-		    <dependencies><dependency>
-		        <groupId>g</groupId>
-		        <artifactId>module-two</artifactId>
-		        <version>1</version>
-		    </dependency></dependencies>
+		    <dependencies>
+		        $(dependency g module-two 1)
+		    </dependencies>
 		</project>
 	EOF
     cat <<- EOF > "$base2/pom.xml"
@@ -364,11 +356,9 @@ testEndToEnd() {
 		        <maven.compiler.source>1.6</maven.compiler.source>
 		        <maven.compiler.target>1.6</maven.compiler.target>
 		    </properties>
-		    <dependencies><dependency>
-		        <groupId>g</groupId>
-		        <artifactId>module-three</artifactId>
-		        <version>1</version>
-		    </dependency></dependencies>
+		    <dependencies>
+		        $(dependency g module-three 1)
+		    </dependencies>
 		</project>
 	EOF
     cat <<- EOF > "$base3/pom.xml"
@@ -413,6 +403,16 @@ testEndToEnd() {
 		}
 	EOF
     assertEquals "$expected" "$out"
+}
+
+dependency() {
+    cat <<- EOF
+		    <dependency>
+		        <groupId>$1</groupId>
+		        <artifactId>$2</artifactId>
+		        <version>$3</version>
+		    </dependency>
+	EOF
 }
 
 DIR="$( dirname "$(pwd)/$0" )"
