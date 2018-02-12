@@ -6,9 +6,7 @@ testMvnDependencyTreeOneSimpleModule() {
     TMPDIR="$dir"
     echo -e "id1\tjar\tpom.xml\t${dir}\t${dir}/src\t${dir}/src" \
         > "$TMPDIR/modules.tab"
-    cat <<- EOF > "$TMPDIR/pom.xml"
-		$(project g a 1)
-	EOF
+    project g a 1 > "$TMPDIR/pom.xml"
 
     dependency_tree "$TMPDIR/modules.tab" "*" "$TMPDIR/mvn.dot" >/dev/null
 
@@ -29,14 +27,9 @@ testMvnDependencyTreeTwoModules() {
     echo -e "id1\tjar\tpom.xml\t${base1}\t${base1}/src\t${base1}/src\n" \
             "id2\tjar\tpom.xml\t${base2}\t${base2}/src\t${base2}/src" \
         > "$TMPDIR/modules.tab"
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g a 1)
-	EOF
-    cat <<- EOF > "$base2/pom.xml"
-		$(project g b 1 \
-		    "$(dependency g a 1)" \
-		)
-	EOF
+    project g a 1 > "$base1/pom.xml"
+    project g b 1 \
+        "$(dependency g a 1)" > "$base2/pom.xml"
     echo -e "public class One {}" \
         > "$base1/src/main/java/One.java"
     (cd "$base1" && mvn -B -q install -Dmaven.test.skip=true)
@@ -59,9 +52,7 @@ testFindOneModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g a 1)
-	EOF
+    project g a 1 > "$base1/pom.xml"
 
     find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
 
@@ -78,12 +69,8 @@ testFindTwoModules() {
     mkdir -p "$base1/src/main/java"
     mkdir -p "$base2/src/main/java"
     TMPDIR="$dir"
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g with-space-in-path 1)
-	EOF
-    cat <<- EOF > "$base2/pom.xml"
-		$(project g b 1)
-	EOF
+    project g with-space-in-path 1 > "$base1/pom.xml"
+    project g b 1 > "$base2/pom.xml"
 
     find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
 
@@ -99,9 +86,7 @@ testFindNewModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g a 1)
-	EOF
+    project g a 1 > "$base1/pom.xml"
     echo -e "id2\tjar\tpom.xml\tBASE\tSRC\tRESRC\tHASH" > "$dir/cache_modules.tab"
 
     find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
@@ -119,9 +104,7 @@ testFindUnchangedModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g a 1)
-	EOF
+    project g a 1 > "$base1/pom.xml"
     echo -e "g:a:1\tjar\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$dir/cache_modules.tab"
 
     find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
@@ -138,9 +121,7 @@ testFindChangedModule() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g a 1)
-	EOF
+    project g a 1 > "$base1/pom.xml"
     echo -e "g:a:1\tjar\tpom.xml\t${dir}\t${dir}/src\t${dir}/src\tDIFFERENT" \
         > "$dir/cache_modules.tab"
 
@@ -158,9 +139,7 @@ testFindCachedPom() {
     local base1="$dir/module1"
     mkdir -p "$base1/src/main/java"
     TMPDIR="$dir"
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g a 1)
-	EOF
+    project g a 1 > "$base1/pom.xml"
     echo -e "g:a:1\tpom\t$base1/pom.xml\t$base1\t$base1/src/main/java\t$base1/src/main/resources\t$(fingerprint "$base1/pom.xml")" > "$dir/cache_modules.tab"
 
     find_modules "$dir" "$dir" "$TMPDIR/modules.tab" >/dev/null
@@ -179,19 +158,11 @@ testUndeclaredUse() {
     local base3="$dir/module3"
     mkdir -p "$base1/src/main/java/com" "$base2/src/main/java/com" "$base3/src/main/java/com"
     TMPDIR="$dir"
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g a 1 \
-		    "$(dependency g b 1)" \
-		)
-	EOF
-    cat <<- EOF > "$base2/pom.xml"
-		$(project g b 1 \
-		    "$(dependency g c 1)" \
-		)
-	EOF
-    cat <<- EOF > "$base3/pom.xml"
-		$(project g c 1)
-	EOF
+    project g a 1 \
+        "$(dependency g b 1)" > "$base1/pom.xml"
+    project g b 1 \
+        "$(dependency g c 1)" > "$base2/pom.xml"
+    project g c 1 > "$base3/pom.xml"
     cat <<- EOF > "$base1/src/main/java/com/A.java"
 		package com;
 		import com.C;
@@ -243,19 +214,11 @@ testEndToEnd() {
 		    </modules>
 		</project>
 	EOF
-    cat <<- EOF > "$base1/pom.xml"
-		$(project g module-one 1 \
-		    "$(dependency g module-two 1)" \
-		)
-	EOF
-    cat <<- EOF > "$base2/pom.xml"
-		$(project g module-two 1 \
-		    "$(dependency g module-three 1)" \
-		)
-	EOF
-    cat <<- EOF > "$base3/pom.xml"
-		$(project g module-three 1)
-	EOF
+    project g module-one 1 \
+        "$(dependency g module-two 1)" > "$base1/pom.xml"
+    project g module-two 1 \
+        "$(dependency g module-three 1)" > "$base2/pom.xml"
+    project g module-three 1 > "$base3/pom.xml"
     cat <<- EOF > "$base1/src/main/java/com/m1/One.java"
 		package com.m1;
 		import static com.m2.Two.A;
