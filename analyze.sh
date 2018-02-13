@@ -4,11 +4,12 @@ set -o errexit
 TMPDIR="$(mktemp -d)"
 
 main() {
-    while getopts ":hi:o:q" opt; do
+    while getopts ":hi:o:uq" opt; do
         case $opt in
             h) print_usage_and_exit 0 ;;
             i) includes="$OPTARG" ;;
             o) outputfile="$OPTARG" ;;
+            u) skip_undec=1 ;;
             q) quiet=1 ;;
             \?)echo "Invalid option: -$OPTARG" >&2
                print_usage_and_exit ;;
@@ -42,8 +43,10 @@ main() {
     packages "$modules" "$TMPDIR/packages-modules.tsv" >&3
     usages "$modules" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv" >&3
     dependency_tree "$modules" "${includes:-*}" "$TMPDIR/mvn.dot" >&3
-    undeclared_use "$modules" "$TMPDIR/undeclared.tab" >&3
-    concat_deps "$TMPDIR/deps.tsv" "$TMPDIR/undeclared.tab" >&3
+    if [ -z "$skip_undec" ]; then
+        undeclared_use "$modules" "$TMPDIR/undeclared.tab" >&3
+        concat_deps "$TMPDIR/deps.tsv" "$TMPDIR/undeclared.tab" >&3
+    fi
     cut -f 1,5 "$modules" | sizes > "$TMPDIR/size.tab" #1,5=id,src
     echo "mvn deps" >&3
     if [ -n "$outputfile" ]; then
@@ -71,6 +74,7 @@ print_usage() {
 		  -i pattern    Filter dependencies using pattern. Syntax is
 		                [groupId]:[artifactId]:[type]:[version]
 		  -o filename   Write output to file
+		  -u            Don't check all undeclared dependencies
 		  -q            Quiet
 	EOF
 }
