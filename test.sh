@@ -97,6 +97,20 @@ testUsages2() {
     assertEquals '' "$(echo -e "id1\tid2\t1" | sort)" "$(cat "$TMPDIR/deps.tsv" | sort)"
 }
 
+testCleanUpFgrepTwoOnSameLine() {
+    local file="$(mktemp)"
+    echo "hit hit" > "$file"
+
+    out=$(fgrep --color=never -H -o -f <(echo "hit") "$file" \
+        | clean_up_fgrep)
+
+    read -r -d '' expected <<- EOF
+		${file}:hit
+		${file}:hit
+	EOF
+    assertEquals '' "$expected" "$out"
+}
+
 testNoParameters() {
     local out="$(main 2>&1)"
 

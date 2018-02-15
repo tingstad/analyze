@@ -251,6 +251,7 @@ usages() {
     | while IFS=$'\t' read id base src resource ;do
         find "$base" \( -path "$src/*" -or -path "$resource/*" \) -type f \
             -exec fgrep --color=never --binary-files=without-match -H -o -f "$TMPDIR/packages.txt" {} \; \
+            | clean_up_fgrep \
             | awk -F: 'BEGIN { OFS = "\t" } {
                         d[1] = "'"$src"'"; d[2] = "'"$resource"'"
                         for (s in d) {
@@ -293,6 +294,18 @@ usages() {
             }' \
         | sort \
         > "$outfile"
+}
+
+clean_up_fgrep() {
+    awk -F: '{
+        OFS = FS
+        if (NF == 2) {
+            f = $1
+            print
+        }
+        else
+            print f, $0
+    }'
 }
 
 mvneval() {
