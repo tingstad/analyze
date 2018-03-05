@@ -18,7 +18,7 @@
 	"mocklogin" -> "DB kjerne" [color=red]; /* UtfyllingLaster */
 EOF
 awk -v append="$APPEND" '{
-    if ($0 ~ /^"(kunde|admin|kjerne|fitnesse-server)" \[/)
+    if ($0 ~ /^"(kunde|admin|kjerne|fitnesse-server|ytelsestest)" \[/)
         app[$0]=1
     else if ($0 ~ /"sb1\./) {
         sb[substr($0, index($0, "\"sb1."))]=1
