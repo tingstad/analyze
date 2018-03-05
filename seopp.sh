@@ -14,6 +14,7 @@
 	"kjerne" -> "DB kjerne" [color=red]; /* KundedataService */
 	"datalag-admin" -> "DB kjerne" [color=red]; /* KjerneRepository */
 	"fitnesse-server" -> "DB kjerne" [color=red]; /* automatiserttest.fitnesse.database */
+	"kunde" -> "mocklogin";
 	"mocklogin" -> "DB kjerne" [color=red]; /* UtfyllingLaster */
 EOF
 awk -v append="$APPEND" '{
