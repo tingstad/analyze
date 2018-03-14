@@ -15,8 +15,44 @@ tree() {
     [ $# -eq 2 ] && [ -f "$1" ] && [ -n "$2" ] || error "Illegal argument"
     local file="$1"
     local pattern="$2"
-    pom "$file" \
-        | awk -F '"' -v repo="$repo" -v pattern="$pattern" '
+    awk -F '"' -v repo="$repo" -v pattern="$pattern" -v file="$file" '
+        function main(file, line, cmd, root) {
+            #print "f " file
+            cmd = mvn_dep_tree(file)
+            root = ""
+            while ((cmd | getline line) > 0 ) {
+                #if (file ~ "Users") print line
+                if (line ~ "->") {
+                    split(line, a, "\"")
+                    src = a[2]
+                    dest = a[4]
+                    if (!root) {
+                        root = src
+                        seen[src]++
+                    }
+                    if (src == root) {
+                        split(dest, a, ":")
+                        gsub("\\.", "/", a[1])
+                        path = a[1] "/" a[2] "/" a[4] "/" a[2] "-" a[4] ".pom"
+                        print coordinate(src) " -> " coordinate(dest)
+                        #error = system("'"$0"' " (repo "/" path) " " pattern)
+                        #if (error) exit error
+                        #print "cmd 1 " cmd
+                        if (!seen[dest]) main(repo "/" path, "")
+                        #print "cmd 2 " cmd
+                    }
+                }
+            }
+            #print "CMD " cmd
+            error = close(cmd)
+            if (error) {
+                print "ERROR " ERRNO
+                exit error
+            }
+        }
+        function mvn_dep_tree(file) {
+            return "mvn --batch-mode --non-recursive --fail-fast --file \"" file "\" dependency:tree -DoutputType=dot"
+        }
         function coordinate(node_string) {
             split(node_string, a, ":")
             groupId = a[1]
@@ -24,18 +60,8 @@ tree() {
             version = a[4]
             return groupId ":" artifactId ":" version
         }
-        $0 ~ "->" {
-            src = $2
-            dest = $4
-            if (!root) root = src
-            if (src == root) {
-                split(dest, a, ":")
-                gsub("\\.", "/", a[1])
-                path = a[1] "/" a[2] "/" a[4] "/" a[2] "-" a[4] ".pom"
-                print coordinate(src) " -> " coordinate(dest)
-                error = system("'"$0"' " (repo "/" path) " " pattern)
-                if (error) exit error
-            }
+        BEGIN {
+            main(file, "")
         }'
 }
 
