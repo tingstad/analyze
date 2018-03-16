@@ -16,39 +16,47 @@ tree() {
     local file="$1"
     local pattern="$2"
     awk -F '"' -v repo="$repo" -v pattern="$pattern" -v file="$file" '
-        function main(file, line, cmd, root) {
-            #print "f " file
+        function main(file, pattern,  line, cmd, src, root, success, result, from, to) {
             cmd = mvn_dep_tree(file)
             root = ""
+            success = false
             while ((cmd | getline line) > 0 ) {
-                #if (file ~ "Users") print line
+                if (line ~ "^.INFO. BUILD SUCCESS") {
+                    success = true
+                }
                 if (line ~ "->") {
                     split(line, a, "\"")
                     src = a[2]
                     dest = a[4]
                     if (!root) {
                         root = src
-                        seen[src]++
                     }
                     if (src == root) {
                         split(dest, a, ":")
                         gsub("\\.", "/", a[1])
-                        path = a[1] "/" a[2] "/" a[4] "/" a[2] "-" a[4] ".pom"
-                        print coordinate(src) " -> " coordinate(dest)
-                        #error = system("'"$0"' " (repo "/" path) " " pattern)
-                        #if (error) exit error
-                        #print "cmd 1 " cmd
-                        if (!seen[dest]) main(repo "/" path, "")
-                        #print "cmd 2 " cmd
+                        if (length(a) == 5)
+                            path = a[1] "/" a[2] "/" a[4] "/" a[2] "-" a[4] ".pom"
+                        else
+                            path = a[1] "/" a[2] "/" a[5] "/" a[2] "-" a[5] ".pom"
+                        from = coordinate(src)
+                        to = coordinate(dest)
+                        print from " -> " to
+                        seen[from]++
+                        if (!seen[to]) {
+                            result = main(repo "/" path, "")
+                            print result " result (" from ", " to ")"
+                            if (result) print from " -> error"
+                        }
                     }
                 }
             }
-            #print "CMD " cmd
             error = close(cmd)
             if (error) {
-                print "ERROR " ERRNO
+                print "ERROR " error " " ERRNO
                 exit error
             }
+            if (!success) print "no succes: " cmd
+            return !success
         }
         function mvn_dep_tree(file) {
             return "mvn --batch-mode --non-recursive --fail-fast --file \"" file "\" dependency:tree -DoutputType=dot"
@@ -57,7 +65,7 @@ tree() {
             split(node_string, a, ":")
             groupId = a[1]
             artifactId = a[2]
-            version = a[4]
+            version = (length(a) <= 5 ? a[4] : a[5])
             return groupId ":" artifactId ":" version
         }
         BEGIN {
