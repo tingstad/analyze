@@ -17,14 +17,15 @@ tree() {
     local pattern="$2"
     awk -F '"' -v repo="$repo" -v pattern="$pattern" -v file="$file" '
         function main(file, pattern,  line, cmd, src, root, success, result, from, to) {
+            #print "main " file
             cmd = mvn_dep_tree(file)
             root = ""
-            success = false
+            success = 0
             while ((cmd | getline line) > 0 ) {
                 if (line ~ "^.INFO. BUILD SUCCESS") {
-                    success = true
+                    success = 1
                 }
-                if (line ~ "->") {
+                if (line ~ "^.INFO.* -> ") {
                     split(line, a, "\"")
                     src = a[2]
                     dest = a[4]
@@ -44,18 +45,19 @@ tree() {
                         seen[from]++
                         if (!seen[to]) {
                             result = main(repo "/" path, "")
-                            print result " result (" from ", " to ")"
-                            if (result) print from " -> error"
+                            #print result " result (" from ", " to ")"
+                            if (result) print to " -> \"ERROR " result "\""
                         }
                     }
                 }
             }
             error = close(cmd)
             if (error) {
-                print "ERROR " error " " ERRNO
-                exit error
+                #print "ERROR " error " " ERRNO
+                #exit error
+                return error
             }
-            if (!success) print "no succes: " cmd
+            #if (!success) print "no succes: " cmd
             return !success
         }
         function mvn_dep_tree(file) {
