@@ -35,7 +35,7 @@ tree() {
                     if (src == root) {
                         split(dest, a, ":")
                         gsub("\\.", "/", a[1])
-                        if (length(a) == 5)
+                        if (len(a) == 5)
                             path = a[1] "/" a[2] "/" a[4] "/" a[2] "-" a[4] ".pom"
                         else
                             path = a[1] "/" a[2] "/" a[5] "/" a[2] "-" a[5] ".pom"
@@ -67,8 +67,13 @@ tree() {
             split(node_string, a, ":")
             groupId = a[1]
             artifactId = a[2]
-            version = (length(a) <= 5 ? a[4] : a[5])
+            version = (len(a) <= 5 ? a[4] : a[5])
             return groupId ":" artifactId ":" version
+        }
+        function len(arr) {
+            count = 0
+            for (k in arr) ++count
+            return count
         }
         BEGIN {
             main(file, "")
