@@ -14,8 +14,18 @@
 	"kjerne" -> "DB kjerne" [color=red]; /* KundedataService */
 	"datalag-admin" -> "DB kjerne" [color=red]; /* KjerneRepository */
 	"fitnesse-server" -> "DB kjerne" [color=red]; /* automatiserttest.fitnesse.database */
-	"kunde" -> "mocklogin";
+	"kunde" -> "mocklogin" [color=gray];
 	"mocklogin" -> "DB kjerne" [color=red]; /* UtfyllingLaster */
+	"kunde" -> "kunde-innganger";
+	"kunde" -> "jetty-kunde";
+	"kunde-deploy" -> "kunde";
+	"kunde-deploy" -> "jetty-kunde";
+	"admin" -> "jetty-admin";
+	"admin-deploy" -> "admin";
+	"admin-deploy" -> "jetty-admin";
+	"kjerne-deploy" -> "kjerne";
+	"kunde" -> "db-server" [color=gray];
+	"admin" -> "db-server" [color=gray];
 EOF
 awk -v append="$APPEND" '{
     if ($0 ~ /^"(kunde|admin|kjerne|fitnesse-server|ytelsestest)" \[/)
