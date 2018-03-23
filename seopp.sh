@@ -48,5 +48,7 @@ awk -v append="$APPEND" '{
     }
     else
         print
-}' )
+}' \
+| sed -r 's/"sb1.[^:]+:/"/g'
+)
 
