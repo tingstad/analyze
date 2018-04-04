@@ -7,18 +7,23 @@ function main() {
     }
     file = ARGV[1]
     repo = get_repo()
-    error = tree(file, "")
+    error = tree(file, "", arr_tree)
     if (error) {
         print "ERROR " error
         exit error
     }
+    #for (k in arr_tree) {
+    #    print k " -> " arr_tree[k]
+    #}
 }
 
-function tree(file, pattern,  line, cmd, src, root, success, result, from, to) {
-    cmd = mvn_dep_tree(file)
+function tree(file, pattern, arr_tree,  arr_mvn_out, n, k, line, src, root, success, result, from, to) {
     root = ""
     success = 0
-    while ((cmd | getline line) > 0 ) {
+    get_dep_tree(file, arr_mvn_out)
+    n = len(arr_mvn_out)
+    for (k = 1; k <= n; ++k) {
+        line = arr_mvn_out[k]
         if (line ~ "^.INFO. BUILD SUCCESS") {
             success = 1
         }
@@ -30,29 +35,51 @@ function tree(file, pattern,  line, cmd, src, root, success, result, from, to) {
                 root = src
             }
             if (src == root) {
-                split(dest, a, ":")
-                gsub("\\.", "/", a[1])
-                if (len(a) == 5)
-                    path = a[1] "/" a[2] "/" a[4] "/" a[2] "-" a[4] ".pom"
-                else
-                    path = a[1] "/" a[2] "/" a[5] "/" a[2] "-" a[5] ".pom"
                 from = coordinate(src)
                 to = coordinate(dest)
-                print from " -> " to
-                seen[from]++
-                if (!seen[to]) {
-                    result = tree(repo "/" path, "")
-                    #print result " result (" from ", " to ")"
-                    if (result) print to " -> \"ERROR " result "\""
+                add_child(arr_tree, from, to)
+                print_dep(from, to)
+                seen[without_pkg(from)]++
+                if (!seen[without_pkg(to)]) {
+                    result = tree(repo "/" path(dest), "", arr_tree)
+                    if (result) {
+                        err_node = "ERROR " result " " to
+                        add_child(arr_tree, to, err_node)
+                        print_dep(to, err_node)
+                    }
                 }
             }
         }
     }
-    error = close(cmd)
-    if (error) {
-        return error
-    }
     return !success
+}
+
+function add_child(arr_tree, key, child) {
+    prefix = (arr_tree[key] ? (arr_tree[key] "/") : "")
+    arr_tree[key] = prefix child
+}
+
+function print_dep(from, to) {
+    print format(from, to)
+}
+
+function format(from, to) {
+    return "\"" from "\" -> \"" to "\""
+}
+
+function get_dep_tree(file, dest_arr) {
+    if (test_mode) return 0
+    cmd = mvn_dep_tree(file)
+    c = 0
+    while ((cmd | getline line) > 0) {
+        dest_arr[++c] = line
+    }
+    retval = close(cmd) #Syntax error in old awks(?)
+    return retval
+}
+
+function mvn_dep_tree(file) {
+    return "mvn --batch-mode --non-recursive --fail-fast --file \"" file "\" dependency:tree -DoutputType=dot"
 }
 
 function get_repo() {
@@ -74,15 +101,29 @@ function get_repo() {
     return repo
 }
 
-function mvn_dep_tree(file) {
-    return "mvn --batch-mode --non-recursive --fail-fast --file \"" file "\" dependency:tree -DoutputType=dot"
-}
-
 function coordinate(node_string) {
     split(node_string, a, ":")
     groupId = a[1]
     artifactId = a[2]
+    packaging = a[3]
     version = (len(a) <= 5 ? a[4] : a[5])
+    return groupId ":" artifactId ":" packaging ":" version
+}
+
+function path(node_string) {
+    split(node_string, a, ":")
+    gsub("\\.", "/", a[1])
+    group_path = a[1]
+    artifactId = a[2]
+    version = (len(a) <= 5 ? a[4] : a[5])
+    return group_path "/" artifactId "/" version "/" artifactId "-" version ".pom"
+}
+
+function without_pkg(str_coord) {
+    split(str_coord, a, ":")
+    groupId = a[1]
+    artifactId = a[2]
+    version = a[4]
     return groupId ":" artifactId ":" version
 }
 

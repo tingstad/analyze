@@ -9,6 +9,30 @@ function run_tests() {
     assert_equals("Array with six elements should have length 6", 6, len(arr))
     assert_equals("Invalid file should give error", 1, tree("non_existing"))
     assert_match("Should evaluate mvn repo", "^/.*[^/]$", get_repo())
+
+    assert_equals("Normal coordinate", "grp:art:jar:1", coordinate("grp:art:jar:1:compile"))
+    assert_equals("Test-jar coordinate", "grp:art:test-jar:1", coordinate("grp:art:test-jar:tests:1:test"))
+
+    arr_mvn_out[1] = "[INFO] digraph \"grp:art:jar:1\" {"
+    arr_mvn_out[2] = "[INFO]  \"grp:art:jar:1\" -> \"grp:dep:jar:1:compile\" ;"
+    arr_mvn_out[3] = "[INFO] BUILD SUCCESS"
+    retval = tree("foo/pom.xml", "", arr_tree, arr_mvn_out)
+    assert_equals("Should not give error", 0, retval)
+    assert_equals("Tree should have size 2", 2, len(arr_tree))
+    assert_equals("Tree should contain dependency", "grp:dep:jar:1", arr_tree["grp:art:jar:1"])
+    assert_equals("Tree should contain error", "ERROR 1 grp:dep:jar:1", arr_tree["grp:dep:jar:1"])
+    for (k in arr_tree) delete arr_tree[k]
+
+    arr_mvn_out[1] = "[INFO] digraph \"grp:art:jar:1\" {"
+    arr_mvn_out[2] = "[INFO]  \"grp:art:jar:1\" -> \"grp:dep:jar:1:compile\" ;"
+    arr_mvn_out[3] = "[INFO]  \"grp:art:jar:1\" -> \"grp:dep2:jar:1:compile\" ;"
+    arr_mvn_out[4] = "[INFO] BUILD SUCCESS"
+    retval = tree("foo/pom.xml", "", arr_tree, arr_mvn_out)
+    assert_equals("Should not give error", 0, retval)
+    assert_equals("Tree should have size 3", 3, len(arr_tree))
+    assert_equals("Tree should contain error", "ERROR 1 grp:dep:jar:1", arr_tree["grp:dep:jar:1"])
+    assert_equals("Tree should contain error", "ERROR 1 grp:dep2:jar:1", arr_tree["grp:dep2:jar:1"])
+    assert_equals("Tree should contain dependency", "grp:dep:jar:1/grp:dep2:jar:1", arr_tree["grp:art:jar:1"])
 }
 
 function assert_equals(message, expected, actual) {
