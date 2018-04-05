@@ -50,6 +50,7 @@ function assert_match(message, expected, actual) {
 }
 
 function ok(message) {
+    succeeded++
     print "OK: " message
 }
 
@@ -62,5 +63,6 @@ BEGIN {
     test_mode = 1
     print "Running tests"
     run_tests()
+    print "Ran " succeeded " tests successfully!"
 }
 
