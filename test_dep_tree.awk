@@ -21,6 +21,10 @@ function run_tests() {
     assert_equals("Tree should have size 2", 2, len(arr_tree))
     assert_equals("Tree should contain dependency", "grp:dep:jar:1", arr_tree["grp:art:jar:1"])
     assert_equals("Tree should contain error", "ERROR 1 grp:dep:jar:1", arr_tree["grp:dep:jar:1"])
+    assert_equals("Output should contain dependencies", \
+            "\"grp:art:jar:1\" -> \"grp:dep:jar:1\"\n" \
+            "\"grp:dep:jar:1\" -> \"ERROR 1 grp:dep:jar:1\"" \
+            , str_out)
     for (k in arr_tree) delete arr_tree[k]
 
     arr_mvn_out[1] = "[INFO] digraph \"grp:art:jar:1\" {"

@@ -60,7 +60,12 @@ function add_child(arr_tree, key, child) {
 }
 
 function print_dep(from, to) {
-    print format(from, to)
+    prnt(format(from, to))
+}
+
+function prnt(str) {
+    if (test_mode) str_out = (str_out ? str_out "\n" : "") str
+    else print str
 }
 
 function format(from, to) {
