@@ -18,8 +18,16 @@ function run_tests() {
     assert_equals("Tree should contain dependency", "grp:dep:jar:1", arr_tree["grp:art:jar:1"])
     assert_equals("Tree should contain error", "ERROR 1 grp:dep:jar:1", arr_tree["grp:dep:jar:1"])
     assert_equals("Output should contain dependencies", \
-            "\"grp:art:jar:1\" -> \"grp:dep:jar:1\"\n" \
-            "\"grp:dep:jar:1\" -> \"ERROR 1 grp:dep:jar:1\"" \
+            "\"grp:art:jar:1\" -> \"grp:dep:jar:1\";\n" \
+            "\"grp:dep:jar:1\" -> \"ERROR 1 grp:dep:jar:1\";" \
+            , str_out)
+    str_out = ""
+    tree_top("filename", arr_mvn_out)
+    assert_equals("Output should contain \"digraph\"", \
+            "digraph {\n" \
+            "\"grp:art:jar:1\" -> \"grp:dep:jar:1\";\n" \
+            "\"grp:dep:jar:1\" -> \"ERROR 1 grp:dep:jar:1\";\n" \
+            "}" \
             , str_out)
     for (k in arr_tree) delete arr_tree[k]
 
@@ -63,6 +71,7 @@ function test_arguments() {
     assert_equals("Too many arguments should print usage", "Usage: dependency_tree.awk FILE", str_out)
     str_out = ""
 
+    for (k in ARGV) delete ARGV[k]
 }
 
 function assert_equals(message, expected, actual) {

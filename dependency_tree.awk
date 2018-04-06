@@ -7,7 +7,7 @@ function main() {
     }
     file = ARGV[1]
     repo = get_repo()
-    error = tree(file, "", arr_tree)
+    error = tree_top(file, repo)
     if (error) {
         prnt("ERROR " error)
         return error
@@ -15,6 +15,14 @@ function main() {
     #for (k in arr_tree) {
     #    print k " -> " arr_tree[k]
     #}
+    return 0
+}
+
+function tree_top(file, repo) {
+    prnt("digraph {")
+    retval_treetop = tree(file, "",  arr_tree, arr_mvn_out)
+    if (retval_treetop) return retval_treetop
+    prnt("}")
     return 0
 }
 
@@ -70,7 +78,7 @@ function prnt(str) {
 }
 
 function format(from, to) {
-    return "\"" from "\" -> \"" to "\""
+    return "\"" from "\" -> \"" to "\";"
 }
 
 function get_dep_tree(file, dest_arr) {
