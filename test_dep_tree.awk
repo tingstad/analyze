@@ -1,13 +1,9 @@
 #!/usr/bin/awk -f
 
 function run_tests() {
-    arr[1] = 1
-    assert_equals("Array with one element should have length 1", 1, len(arr))
-    arr[2] = 1
-    assert_equals("Array with two elements should have length 2", 2, len(arr))
-    split("a:b:c:d:e:f", arr, ":")
-    assert_equals("Array with six elements should have length 6", 6, len(arr))
-    assert_equals("Invalid file should give error", 1, tree("non_existing"))
+    test_len()
+    test_arguments()
+ 
     assert_match("Should evaluate mvn repo", "^/.*[^/]$", get_repo())
 
     assert_equals("Normal coordinate", "grp:art:jar:1", coordinate("grp:art:jar:1:compile"))
@@ -37,6 +33,36 @@ function run_tests() {
     assert_equals("Tree should contain error", "ERROR 1 grp:dep:jar:1", arr_tree["grp:dep:jar:1"])
     assert_equals("Tree should contain error", "ERROR 1 grp:dep2:jar:1", arr_tree["grp:dep2:jar:1"])
     assert_equals("Tree should contain dependency", "grp:dep:jar:1/grp:dep2:jar:1", arr_tree["grp:art:jar:1"])
+}
+
+function test_len() {
+    arr[1] = 1
+    assert_equals("Array with one element should have length 1", 1, len(arr))
+    arr[2] = 1
+    assert_equals("Array with two elements should have length 2", 2, len(arr))
+    split("a:b:c:d:e:f", arr, ":")
+    assert_equals("Array with six elements should have length 6", 6, len(arr))
+}
+
+function test_arguments() {
+
+    main()
+    assert_equals("No arguments should print usage", "Usage: dependency_tree.awk FILE", str_out)
+    str_out = ""
+
+    ARGV[1] = "filename"
+    ARGC = len(ARGV)
+    main()
+    assert_match("Invalid filename should fail", "ERROR [0-9]", str_out)
+    str_out = ""
+
+    ARGV[1] = "filename"
+    ARGV[2] = "excessive"
+    ARGC = len(ARGV)
+    main()
+    assert_equals("Too many arguments should print usage", "Usage: dependency_tree.awk FILE", str_out)
+    str_out = ""
+
 }
 
 function assert_equals(message, expected, actual) {

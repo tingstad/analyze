@@ -1,20 +1,21 @@
 #!/usr/bin/awk -f
 
 function main() {
-    if (ARGC < 2 || ARGC > 3) {
-        print "Usage: dependency_tree.awk FILE [PATTERN]"
-        exit 1
+    if (ARGC < 2 || ARGC > 2) {
+        prnt("Usage: dependency_tree.awk FILE")
+        return 1
     }
     file = ARGV[1]
     repo = get_repo()
     error = tree(file, "", arr_tree)
     if (error) {
-        print "ERROR " error
-        exit error
+        prnt("ERROR " error)
+        return error
     }
     #for (k in arr_tree) {
     #    print k " -> " arr_tree[k]
     #}
+    return 0
 }
 
 function tree(file, pattern, arr_tree,  arr_mvn_out, n, k, line, src, root, success, result, from, to) {
@@ -140,6 +141,7 @@ function len(arr) {
 
 BEGIN {
     if (test_mode) exit
-    main()
+    retval = main()
+    exit retval
 }
 
