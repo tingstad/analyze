@@ -1,4 +1,6 @@
 #!/usr/bin/awk -f
+#
+# awk -f test_dep_tree.awk -f dependency_tree.awk
 
 function run_tests() {
     test_len()
