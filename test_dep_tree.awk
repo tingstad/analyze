@@ -11,6 +11,12 @@ function run_tests() {
     assert_equals("Normal coordinate", "grp:art:jar:1", coordinate("grp:art:jar:1:compile"))
     assert_equals("Test-jar coordinate", "grp:art:test-jar:1", coordinate("grp:art:test-jar:tests:1:test"))
 
+    test_tree_with_one_dependency();
+    test_tree_with_two_dependencies();
+    test_tree_with_test_scope();
+}
+
+function test_tree_with_one_dependency() {
     arr_mvn_out[1] = "[INFO] digraph \"grp:art:jar:1\" {"
     arr_mvn_out[2] = "[INFO]  \"grp:art:jar:1\" -> \"grp:dep:jar:1:compile\" ;"
     arr_mvn_out[3] = "[INFO] BUILD SUCCESS"
@@ -31,18 +37,43 @@ function run_tests() {
             "\"grp:dep:jar:1\" -> \"ERROR 1 grp:dep:jar:1\";\n" \
             "}" \
             , str_out)
+    str_out = ""
     for (k in arr_tree) delete arr_tree[k]
+    for (k in arr_mvn_out) delete arr_mvn_out[k]
+}
 
+function test_tree_with_two_dependencies() {
     arr_mvn_out[1] = "[INFO] digraph \"grp:art:jar:1\" {"
     arr_mvn_out[2] = "[INFO]  \"grp:art:jar:1\" -> \"grp:dep:jar:1:compile\" ;"
     arr_mvn_out[3] = "[INFO]  \"grp:art:jar:1\" -> \"grp:dep2:jar:1:compile\" ;"
     arr_mvn_out[4] = "[INFO] BUILD SUCCESS"
+
     retval = tree("foo/pom.xml", "", arr_tree, arr_mvn_out)
+
     assert_equals("Should not give error", 0, retval)
     assert_equals("Tree should have size 3", 3, len(arr_tree))
     assert_equals("Tree should contain error", "ERROR 1 grp:dep:jar:1", arr_tree["grp:dep:jar:1"])
     assert_equals("Tree should contain error", "ERROR 1 grp:dep2:jar:1", arr_tree["grp:dep2:jar:1"])
     assert_equals("Tree should contain dependency", "grp:dep:jar:1/grp:dep2:jar:1", arr_tree["grp:art:jar:1"])
+    for (k in arr_mvn_out) delete arr_mvn_out[k]
+    str_out = ""
+}
+
+function test_tree_with_test_scope() {
+    arr_mvn_out[1] = "[INFO] digraph \"grp:art:jar:1\" {"
+    arr_mvn_out[2] = "[INFO]  \"grp:art:jar:1\" -> \"grp:dep:jar:1:test\" ;"
+    arr_mvn_out[3] = "[INFO] BUILD SUCCESS"
+
+    retval = tree("foo/pom.xml", "", arr_tree, arr_mvn_out)
+
+    assert_equals("Should not give error", 0, retval)
+    #TODO: test scope??
+    assert_equals("Output should contain test dependency", \
+            "\"grp:art:jar:1\" -> \"grp:dep:jar:1\";\n" \
+            "\"grp:dep:jar:1\" -> \"ERROR 1 grp:dep:jar:1\";" \
+            , str_out)
+    str_out = ""
+    for (k in arr_mvn_out) delete arr_mvn_out[k]
 }
 
 function test_len() {
