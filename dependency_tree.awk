@@ -117,11 +117,30 @@ function get_repo() {
 
 function coordinate(node_string) {
     split(node_string, a, ":")
+    n = len(a)
+    # groupId:artifactId:(packaging/classifier):[type:]version[:scope]
     groupId = a[1]
     artifactId = a[2]
     packaging = a[3]
-    version = (len(a) <= 5 ? a[4] : a[5])
-    return groupId ":" artifactId ":" packaging ":" version
+    if (n == 4) {
+        type = "jar"
+        version = a[4]
+        scope = "compile"
+        return groupId ":" artifactId ":" packaging ":" version
+    } else if (n == 6) {
+        type = a[4]
+        version = a[5]
+        scope = a[6]
+    } else if (a[n] ~ /compile|provided|runtime|test|system/) {
+        type = "jar"
+        version = a[4]
+        scope = a[5]
+    } else {
+        type = a[4]
+        version = a[5]
+        scope = "compile"
+    }
+    return groupId ":" artifactId ":" packaging ":" version ":" scope
 }
 
 function path(node_string) {
