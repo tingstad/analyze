@@ -101,7 +101,7 @@ find_modules() {
             awk "\$1 == \"${id}\" && \$2 != \"pom\"" "$cachefile" >> "$outfile"
             continue
         else
-            [ -f "$cachefile" ] && ( grep -v "^$id"$'\t' "$cachefile" \
+            [ -f "$cachefile" ] && ( grep --color=never -v "^$id"$'\t' "$cachefile" \
                 > "$cachefile.2" ; mv "$cachefile.2" "$cachefile" )
         fi
         local pkg="$(mvneval "$f" project.packaging)"
@@ -345,7 +345,7 @@ undeclared_use() {
 parse_mvn_analyze() {
     [ $# -eq 1 ] && [ -n "$1" ] || error "Illegal argument"
     local id="$1"
-    grep '^$$%%%' \
+    grep --color=never '^$$%%%' \
     | awk -F : '
         {
             OFS = "\t"
@@ -366,7 +366,7 @@ concat_deps() {
     if is_empty "$deps"; then
         cat "$undeclared" > "$deps"
     elif ! is_empty "$undeclared"; then
-        fgrep -v -f <(cut -f 1-2 "$deps") "$undeclared" >> "$deps"
+        fgrep --color=never -v -f <(cut -f 1-2 "$deps") "$undeclared" >> "$deps"
     fi
 }
 
