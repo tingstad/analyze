@@ -26,7 +26,7 @@ function tree_top(file, repo) {
     return 0
 }
 
-function tree(file, pattern, arr_tree,  arr_mvn_out, n, k, line, src, root, success, result, from, to) {
+function tree(file, scope, arr_tree, arr_mvn_out, n, k, line, src, root, success, result, from, to) {
     root = ""
     success = 0
     get_dep_tree(file, arr_mvn_out)
@@ -44,13 +44,18 @@ function tree(file, pattern, arr_tree,  arr_mvn_out, n, k, line, src, root, succ
                 root = src
             }
             if (src == root) {
-                from = coordinate(src)
+                from = coordinate(src) (scope ? ":" scope : "")
                 to = coordinate(dest)
+                is_root = (scope == "")
+                dest_scope = get_scope(to)
+                trans_scope = transitive_scope(scope, dest_scope)
+                to = set_scope(to, trans_scope)
+                if (!is_root && !trans_scope) continue #no deeper
                 add_child(arr_tree, from, to)
                 print_dep(from, to)
                 seen[without_pkg(from)]++
                 if (!seen[without_pkg(to)]) {
-                    result = tree(repo "/" path(dest), "", arr_tree)
+                    result = tree(repo "/" path(dest), trans_scope, arr_tree)
                     if (result) {
                         err_node = "ERROR " result " " to
                         add_child(arr_tree, to, err_node)
@@ -61,6 +66,20 @@ function tree(file, pattern, arr_tree,  arr_mvn_out, n, k, line, src, root, succ
         }
     }
     return !success
+}
+
+function transitive_scope(from, to) {
+    if (len(table) == 0) {
+        table["compile,compile"] = "compile"
+        table["compile,runtime"] = "runtime"
+        table["provided,compile"] = "provided"
+        table["provided,runtime"] = "provided"
+        table["runtime,compile"] = "runtime"
+        table["runtime,runtime"] = "runtime"
+        table["test,compile"] = "test"
+        table["test,runtime"] = "test"
+    }
+    return table[from "," to]
 }
 
 function add_child(arr_tree, key, child) {
@@ -158,6 +177,25 @@ function without_pkg(str_coord) {
     artifactId = a[2]
     version = a[4]
     return groupId ":" artifactId ":" version
+}
+
+function get_scope(str_coord) {
+    split(str_coord, a, ":")
+    if (len(a) < 5) {
+        print "ERROR: too short coordinate: " str_coord
+        exit 1
+    }
+    return a[5]
+}
+
+function set_scope(str_coord, scope) {
+    if (!scope) return str_coord
+    split(str_coord, a, ":")
+    if (len(a) < 5) {
+        print "ERROR: too short coordinate: " str_coord
+        exit 1
+    }
+    return a[1] ":" a[2] ":" a[3] ":" a[4] ":" scope
 }
 
 function len(arr) {

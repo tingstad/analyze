@@ -14,6 +14,7 @@ function run_tests() {
     test_tree_with_one_dependency();
     test_tree_with_two_dependencies();
     test_tree_with_test_scope();
+    test_tree_with_transitive_test_dependency();
 }
 
 function test_tree_with_one_dependency() {
@@ -75,6 +76,21 @@ function test_tree_with_test_scope() {
     for (k in arr_mvn_out) delete arr_mvn_out[k]
 }
 
+function test_tree_with_transitive_test_dependency() {
+    arr_mvn_out[1] = "[INFO] digraph \"grp:pro-test:jar:1\" {"
+    arr_mvn_out[2] = "[INFO]  \"grp:pro-test:jar:1\" -> \"grp:dep:jar:1:compile\" ;"
+    arr_mvn_out[3] = "[INFO]  \"grp:pro-test:jar:1\" -> \"grp:dont-care:jar:1:test\" ;"
+    arr_mvn_out[4] = "[INFO] BUILD SUCCESS"
+
+    retval = tree("pro/pom.xml", "test", arr_tree, arr_mvn_out)
+
+    assert_equals("Compile dependency: test, test dependency: n/a", \
+            "\"grp:pro-test:jar:1:test\" -> \"grp:dep:jar:1:test\";\n" \
+            "\"grp:dep:jar:1:test\" -> \"ERROR 1 grp:dep:jar:1:test\";" \
+            , str_out)
+    assert_equals("Should not give error", 0, retval)
+    for (k in arr_mvn_out) delete arr_mvn_out[k]
+}
 function test_len() {
     arr[1] = 1
     assert_equals("Array with one element should have length 1", 1, len(arr))
