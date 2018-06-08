@@ -124,7 +124,9 @@ function ok(message) {
 }
 
 function fail(message, expected, actual) {
-    print "FAIL: " message " Expected '" expected "' but was '" actual "'"
+    print "FAIL: " message ":\n" \
+        "expected:<" expected ">\n" \
+        " but was:<" actual ">"
     exit 1
 }
 
