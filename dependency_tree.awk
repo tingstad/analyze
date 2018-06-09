@@ -45,6 +45,10 @@ function tree(file, scope, arr_tree, arr_mvn_out, n, k, line, src, root, success
             }
             if (src == root) {
                 from = coordinate(src) (scope ? ":" scope : "")
+                if (get_packaging(from) == "bundle") {
+                    print_dep(prev_to, from)
+                    return 0
+                }
                 to = coordinate(dest)
                 is_root = (scope == "")
                 dest_scope = get_scope(to)
@@ -55,6 +59,7 @@ function tree(file, scope, arr_tree, arr_mvn_out, n, k, line, src, root, success
                 print_dep(from, to)
                 seen[without_pkg(from)]++
                 if (!seen[without_pkg(to)]) {
+                    prev_to = to
                     result = tree(repo "/" path(dest), trans_scope, arr_tree)
                     if (result) {
                         err_node = "ERROR " result " " to
@@ -179,6 +184,11 @@ function without_pkg(str_coord) {
     artifactId = a[2]
     version = a[4]
     return groupId ":" artifactId ":" version
+}
+
+function get_packaging(str_coord) {
+    split(str_coord, a, ":")
+    return a[3]
 }
 
 function get_scope(str_coord) {
