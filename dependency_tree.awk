@@ -69,6 +69,8 @@ function tree(file, scope, arr_tree, arr_mvn_out, n, k, line, src, root, success
 }
 
 function transitive_scope(from, to) {
+    if (from == "")
+        return to
     if (len(table) == 0) {
         table["compile,compile"] = "compile"
         table["compile,runtime"] = "runtime"
