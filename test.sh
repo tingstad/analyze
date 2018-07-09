@@ -142,6 +142,7 @@ testArgumentHelp() {
 		                [groupId]:[artifactId]:[type]:[version]
 		  -o filename   Write output to file
 		  -u            Don't check all undeclared dependencies
+		  -s            Don't check string dependencies (only maven)
 		  -q            Quiet
 	EOF
     assertEquals "$expected" "$out"

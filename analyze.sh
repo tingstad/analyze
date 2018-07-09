@@ -4,12 +4,13 @@ set -o errexit
 TMPDIR="$(mktemp -d)"
 
 main() {
-    while getopts ":hi:o:uq" opt; do
+    while getopts ":hi:o:usq" opt; do
         case $opt in
             h) print_usage_and_exit 0 ;;
             i) includes="$OPTARG" ;;
             o) outputfile="$OPTARG" ;;
             u) skip_undec=1 ;;
+            s) skip_strings=1 ;;
             q) quiet=1 ;;
             \?)echo "Invalid option: -$OPTARG" >&2
                print_usage_and_exit ;;
@@ -40,8 +41,10 @@ main() {
     echo "Using temp dir $TMPDIR" >&3
     local modules="$TMPDIR/modules.tab"
     find_modules "$target_dir" "$work_dir" "$modules" >&3
-    packages "$modules" "$TMPDIR/packages-modules.tsv" >&3
-    usages "$modules" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv" >&3
+    if [ -z "$skip_strings" ]; then
+        packages "$modules" "$TMPDIR/packages-modules.tsv" >&3
+        usages "$modules" "$TMPDIR/packages-modules.tsv" "$TMPDIR/deps.tsv" >&3
+    fi
     dependency_tree "$modules" "${includes:-*}" "$TMPDIR/mvn.dot" >&3
     if [ -z "$skip_undec" ]; then
         undeclared_use "$modules" "$TMPDIR/undeclared.tab" >&3
@@ -75,6 +78,7 @@ print_usage() {
 		                [groupId]:[artifactId]:[type]:[version]
 		  -o filename   Write output to file
 		  -u            Don't check all undeclared dependencies
+		  -s            Don't check string dependencies (only maven)
 		  -q            Quiet
 	EOF
 }
@@ -359,7 +363,7 @@ parse_mvn_analyze() {
 }
 
 concat_deps() {
-    [ $# -eq 2 ] && [ -f "$1" ] && [ -f "$2" ] || error "Illegal argument"
+    [ $# -eq 2 ] && [ -n "$1" ] && [ -f "$2" ] || error "Illegal argument"
     local deps="$1"
     local undeclared="$2"
     echo "concat dependencies"
@@ -391,20 +395,22 @@ module_size() {
 # reads mvn.dot and deps.tsv
 # to create result dot graph
 mvn_deps() {
-    [ $# -eq 3 ] && [ -f "$1" ] && [ -f "$2" ] && [ -f "$3" ] || error "Illegal argument"
+    [ $# -eq 3 ] && [ -n "$1" ] && [ -f "$2" ] && [ -f "$3" ] || error "Illegal argument"
     local deps="$1"
     local mvn_dot="$2"
     local sizes="$3"
-    echo 'digraph {' > "$TMPDIR/mvn-deps.dot"
+    local workfile="$TMPDIR/mvn-deps.dot"
+    [ -f "$deps" ] || touch "$deps"
+    echo 'digraph {' > "$workfile"
     cat "${mvn_dot}" \
         | grep --color=never '" -> "' \
         | sort \
         | uniq \
-        >> "$TMPDIR/mvn-deps.dot"
-    echo '}' >> "$TMPDIR/mvn-deps.dot"
+        >> "$workfile"
+    echo '}' >> "$workfile"
     echo 'digraph {'
     print_node_sizes "$sizes"
-    cat "$TMPDIR/mvn-deps.dot" \
+    cat "$workfile" \
         | grep --color=never '" -> "' \
         | tr -d ' \t"' \
         | sed 's/->/'$'\t''/' \
