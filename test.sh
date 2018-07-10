@@ -546,6 +546,33 @@ testFinalGraph() {
     assertEquals "$expected" "$out"
 }
 
+testFinalGraphNoStringUsages() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/mvn-deps.dot"
+		digraph {
+		    "g:module-one:jar:1" -> "g:module-two:jar:1:compile" ; 
+		    "g:module-two:jar:1" -> "g:module-three:jar:1:compile" ; 
+		    "g:module-two:jar:1:compile" -> "g:module-three:jar:1:compile" ; 
+		}
+	EOF
+    cat <<- EOF > "$dir/sizes.tab"
+		g:module-one:1	10
+		g:module-two:1	20
+	EOF
+
+    local out="$(mvn_deps "$dir/no_deps.tab" "$dir/mvn-deps.dot" "$dir/sizes.tab")"
+
+    read -r -d '' expected <<- EOF
+		digraph {
+		"g:module-one:1" [fixedsize=true,width=2.12132,height=1.41421];
+		"g:module-two:1" [fixedsize=true,width=3,height=2];
+		"g:module-one:1" -> "g:module-two:1";
+		"g:module-two:1" -> "g:module-three:1";
+		}
+	EOF
+    assertEquals "$expected" "$out"
+}
+
 DIR="$( dirname "$(pwd)/$0" )"
 TESTMODE="on"
 source "$DIR/analyze.sh"
