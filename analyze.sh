@@ -50,12 +50,13 @@ main() {
         undeclared_use "$modules" "$TMPDIR/undeclared.tab" >&3
         concat_deps "$TMPDIR/deps.tsv" "$TMPDIR/undeclared.tab" >&3
     fi
+    unused_declared "$modules" "$TMPDIR/unused.tab" >&3
     cut -f 1,5 "$modules" | sizes > "$TMPDIR/size.tab" #1,5=id,src
     echo "mvn deps" >&3
     if [ -n "$outputfile" ]; then
-        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot" "$TMPDIR/size.tab" > "$outputfile"
+        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot" "$TMPDIR/size.tab" "$TMPDIR/unused.tab" > "$outputfile"
     else
-        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot" "$TMPDIR/size.tab"
+        mvn_deps "$TMPDIR/deps.tsv" "$TMPDIR/mvn.dot" "$TMPDIR/size.tab" "$TMPDIR/unused.tab"
     fi
 }
 
@@ -362,6 +363,50 @@ parse_mvn_analyze() {
         }'
 }
 
+unused_declared() {
+    [ $# -eq 2 ] && [ -f "$1" ] && [ -n "$2" ] || error "Illegal argument"
+    local modules="$1"
+    local targetfile="$2"
+    echo "unused declared"
+    cut -f 1,3,4 "$modules" \
+        | while IFS=$'\t' read id pom base ;do
+            (cd "$base" \
+                && mvn -B org.apache.maven.plugins:maven-dependency-plugin:2.10:analyze \
+                | parse_mvn_analyze_unused "$id" \
+                >> "$targetfile"
+            )
+        done
+}
+
+parse_mvn_analyze_unused() {
+    [ $# -eq 1 ] && [ -n "$1" ] || error "Illegal argument"
+    local id="$1"
+    sed -n '/^\[INFO\] --- maven-dependency-plugin/,/^\[INFO\] ---/{p}' \
+    | sed '/^\[WARNING\] /!d' \
+    | awk -F : '
+        BEGIN {
+            OFS = "\t"
+            len = 1 + length("[WARNING]    ")
+            from = "'"$id"'"
+        }
+        unused {
+            if ($0 ~ /^\[WARNING\]    /) {
+                if ($5 == "compile") {
+                    $1 = substr($1, len)
+                    groupId = $1
+                    artifactId = $2
+                    version = $4
+                    to = groupId ":" artifactId ":" version
+                    print from, to
+                }
+            } else
+                unused = 0
+        }
+        /^\[WARNING\] Unused declared dependencies found:/ {
+            unused = 1
+        }'
+}
+
 concat_deps() {
     [ $# -eq 2 ] && [ -n "$1" ] && [ -f "$2" ] || error "Illegal argument"
     local deps="$1"
@@ -395,12 +440,14 @@ module_size() {
 # reads mvn.dot and deps.tsv
 # to create result dot graph
 mvn_deps() {
-    [ $# -eq 3 ] && [ -n "$1" ] && [ -f "$2" ] && [ -f "$3" ] || error "Illegal argument"
+    [ $# -eq 4 ] && [ -n "$1" ] && [ -f "$2" ] && [ -f "$3" ] && [ -n "$4" ] || error "Illegal argument"
     local deps="$1"
     local mvn_dot="$2"
     local sizes="$3"
+    local unused="$4"
     local workfile="$TMPDIR/mvn-deps.dot"
     [ -f "$deps" ] || touch "$deps"
+    [ -f "$unused" ] || touch "$unused"
     echo 'digraph {' > "$workfile"
     cat "${mvn_dot}" \
         | grep --color=never '" -> "' \
@@ -420,6 +467,10 @@ mvn_deps() {
                     split(line, a)
                     dep[a[1] FS a[2]] = a[3]
                 }
+                while ( (getline line<"'"$unused"'") > 0 ) {
+                    split(line, a)
+                    unused[a[1] FS a[2]] = 1
+                }
             }
             {
                 split($1, a, ":")
@@ -430,8 +481,14 @@ mvn_deps() {
                 if (!mvn[k]) {
                     mvn[k] = 1
                     deps = dep[from FS to]
-                    width = (deps ? (deps / 10) : 0)
-                    print "\"" from "\" -> \"" to "\"" (width ? " [penwidth=" width "]" : "") ";"
+                    if (deps) {
+                        width = deps / 10
+                        attr = " [penwidth=" width "]"
+                    } else if (unused[from FS to])
+                        attr = " [style=dashed]"
+                    else
+                        attr = ""
+                    print "\"" from "\" -> \"" to "\"" attr ";"
                 }
             }
             END {
