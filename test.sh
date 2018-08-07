@@ -248,7 +248,7 @@ testArtifactIdFromPom() {
 		      </pluginManagement>
 		    </build>
 		</project>
-		EOF
+	EOF
     )
 
     assertEquals "g:a:1" "$actual"
@@ -269,6 +269,31 @@ testParseMvnAnalyzeUsedUndeclared() {
         | parse_mvn_analyze g:a:1)
 
     assertEquals "$(echo -e "g:a:1\tg:b:2\t0")" "$actual"
+}
+
+testParseMvnAnalyzeUnusedDeclared() {
+    data=$(cat <<- EOF
+		[INFO]
+		[INFO] --- maven-dependency-plugin:3.0.2:analyze (default-cli) @ app-core-resources ---
+		[WARNING] Used undeclared dependencies found:
+		[WARNING]    javax.validation:validation-api:jar:2.0.1.Final:compile
+		[WARNING]    io.swagger:swagger-annotations:jar:1.5.14:compile
+		[WARNING] Unused declared dependencies found:
+		[WARNING]    com.google.code.gson:gson:jar:2.8.1:compile
+		[WARNING]    com.oracle:wlthint3client:jar:12.1.3:runtime
+		[WARNING]    org.apache.commons:commons-lang3:jar:3.6:compile
+		[WARNING]    org.apache.commons:commons-text:jar:1.1:compile
+		[INFO] ------------------------------------------------------------------------
+	EOF
+    )
+    actual=$(echo "$data" | parse_mvn_analyze_unused "g:a:1")
+    expected=$(cat <<- EOF
+		g:a:1	com.google.code.gson:gson:2.8.1
+		g:a:1	org.apache.commons:commons-lang3:3.6
+		g:a:1	org.apache.commons:commons-text:1.1
+	EOF
+    )
+    assertEquals "$expected" "$actual"
 }
 
 testConcatDepsNoUndeclared() {
@@ -531,7 +556,7 @@ testFinalGraph() {
 		g:module-two:1	20
 	EOF
 
-    local out="$(mvn_deps "$dir/deps.tsv" "$dir/mvn-deps.dot" "$dir/sizes.tab")"
+    local out="$(mvn_deps "$dir/deps.tsv" "$dir/mvn-deps.dot" "$dir/sizes.tab" "$dir/unused.tab")"
 
     read -r -d '' expected <<- EOF
 		digraph {
@@ -541,6 +566,100 @@ testFinalGraph() {
 		"g:module-two:1" -> "g:module-three:1";
 		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
 		"g:module-one:1" -> "g:module-four:1" [color=red];
+		}
+	EOF
+    assertEquals "$expected" "$out"
+}
+
+testFinalGraphNoStringUsages() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/mvn-deps.dot"
+		digraph {
+		    "g:module-one:jar:1" -> "g:module-two:jar:1:compile" ; 
+		    "g:module-two:jar:1" -> "g:module-three:jar:1:compile" ; 
+		    "g:module-two:jar:1:compile" -> "g:module-three:jar:1:compile" ; 
+		}
+	EOF
+    cat <<- EOF > "$dir/sizes.tab"
+		g:module-one:1	10
+		g:module-two:1	20
+	EOF
+
+    local out="$(mvn_deps "$dir/no_deps.tab" "$dir/mvn-deps.dot" "$dir/sizes.tab" "$dir/unused.tab")"
+
+    read -r -d '' expected <<- EOF
+		digraph {
+		"g:module-one:1" [fixedsize=true,width=2.12132,height=1.41421];
+		"g:module-two:1" [fixedsize=true,width=3,height=2];
+		"g:module-one:1" -> "g:module-two:1";
+		"g:module-two:1" -> "g:module-three:1";
+		}
+	EOF
+    assertEquals "$expected" "$out"
+}
+
+testFinalGraphUnusedDeclared() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/mvn-deps.dot"
+		digraph {
+		    "g:module-one:jar:1" -> "g:module-two:jar:1:compile" ; 
+		    "g:module-two:jar:1" -> "g:module-three:jar:1:compile" ; 
+		    "g:module-two:jar:1:compile" -> "g:module-three:jar:1:compile" ; 
+		}
+	EOF
+    cat <<- EOF > "$dir/deps.tsv"
+		g:module-one:1	g:module-three:1	1
+		g:module-one:1	g:module-two:1	2
+		g:module-one:1	g:module-four:1	0
+	EOF
+    cat <<- EOF > "$dir/sizes.tab"
+		g:module-one:1	10
+		g:module-two:1	20
+	EOF
+    cat <<- EOF > "$dir/unused.tab"
+		g:module-two:1	g:module-three:1
+	EOF
+
+    local out="$(mvn_deps "$dir/deps.tsv" "$dir/mvn-deps.dot" "$dir/sizes.tab" "$dir/unused.tab")"
+
+    read -r -d '' expected <<- EOF
+		digraph {
+		"g:module-one:1" [fixedsize=true,width=2.12132,height=1.41421];
+		"g:module-two:1" [fixedsize=true,width=3,height=2];
+		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
+		"g:module-two:1" -> "g:module-three:1" [style=dashed];
+		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
+		"g:module-one:1" -> "g:module-four:1" [color=red];
+		}
+	EOF
+    assertEquals "$expected" "$out"
+}
+
+testFinalGraphUnusedDeclaredNoStringUsages() {
+    local dir="$(mktemp -d)"
+    cat <<- EOF > "$dir/mvn-deps.dot"
+		digraph {
+		    "g:module-one:jar:1" -> "g:module-two:jar:1:compile" ; 
+		    "g:module-two:jar:1" -> "g:module-three:jar:1:compile" ; 
+		    "g:module-two:jar:1:compile" -> "g:module-three:jar:1:compile" ; 
+		}
+	EOF
+    cat <<- EOF > "$dir/sizes.tab"
+		g:module-one:1	10
+		g:module-two:1	20
+	EOF
+    cat <<- EOF > "$dir/unused.tab"
+		g:module-two:1	g:module-three:1
+	EOF
+
+    local out="$(mvn_deps "$dir/no_deps.tab" "$dir/mvn-deps.dot" "$dir/sizes.tab" "$dir/unused.tab")"
+
+    read -r -d '' expected <<- EOF
+		digraph {
+		"g:module-one:1" [fixedsize=true,width=2.12132,height=1.41421];
+		"g:module-two:1" [fixedsize=true,width=3,height=2];
+		"g:module-one:1" -> "g:module-two:1";
+		"g:module-two:1" -> "g:module-three:1" [style=dashed];
 		}
 	EOF
     assertEquals "$expected" "$out"
