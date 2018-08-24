@@ -1,5 +1,9 @@
 #!/usr/bin/awk -f
 
+# Should add some filtering options to increase performance.
+# Can eagerly filter all names matching or not matching a pattern,
+# and scope test is often not so interesting.
+
 function main() {
     if (ARGC < 2 || ARGC > 2) {
         prnt("Usage: dependency_tree.awk FILE")
@@ -55,6 +59,7 @@ function tree(file, scope, arr_tree, arr_mvn_out, n, k, line, src, root, success
                 trans_scope = transitive_scope(scope, dest_scope)
                 to = set_scope(to, trans_scope)
                 if (!is_root && !trans_scope) continue #no deeper
+                #if (to !~ "^foo") continue
                 add_child(arr_tree, from, to)
                 print_dep(from, to)
                 seen[without_pkg(from)]++
