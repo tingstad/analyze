@@ -65,6 +65,7 @@ function tree(file, scope, arr_tree, arr_mvn_out, n, k, line, src, root, success
                         err_node = "ERROR " result " " to
                         add_child(arr_tree, to, err_node)
                         print_dep(to, err_node)
+                        seen[without_pkg(to)]++
                     }
                 }
             }
