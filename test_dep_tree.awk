@@ -12,8 +12,11 @@ function run_tests() {
     assert_equals("Test-jar coordinate", "grp:art:test-jar:1:test", coordinate("grp:art:test-jar:tests:1:test"))
 
     test_tree_with_one_dependency();
+    reset();
     test_tree_with_two_dependencies();
+    reset();
     test_tree_with_test_scope();
+    reset();
     test_tree_with_transitive_test_dependency();
 }
 
@@ -29,19 +32,18 @@ function test_tree_with_one_dependency() {
     #assert_equals("Tree should have size 2", 2, len(arr_tree))
     #assert_equals("Tree should contain dependency", "grp:dep:jar:1:compile", arr_tree["grp:art:jar:1:compile"])
     #assert_equals("Tree should contain error", "ERROR 1 grp:dep:jar:1:compile", arr_tree["grp:dep:jar:1:compile"])
+    for (k in seen) delete seen[k]
     assert_equals("Output should contain dependencies", \
             "\"grp:art:jar:1\" -> \"grp:dep:jar:1:compile\";\n" \
             "\"grp:dep:jar:1:compile\" -> \"ERROR 1 grp:dep:jar:1:compile\";" \
             , output)
-    tree_top("filename", arr_mvn_out)
+    tree_top("filename")
     assert_equals("Output should contain \"digraph\"", \
             "digraph {\n" \
             "\"grp:art:jar:1\" -> \"grp:dep:jar:1:compile\";\n" \
             "\"grp:dep:jar:1:compile\" -> \"ERROR 1 grp:dep:jar:1:compile\";\n" \
             "}" \
             , str_out)
-    for (k in arr_tree) delete arr_tree[k]
-    for (k in arr_mvn_out) delete arr_mvn_out[k]
 }
 
 function test_tree_with_two_dependencies() {
@@ -57,7 +59,6 @@ function test_tree_with_two_dependencies() {
     #assert_equals("Tree should contain error", "ERROR 1 grp:dep:jar:1:compile", arr_tree["grp:dep:jar:1:compile"])
     #assert_equals("Tree should contain error", "ERROR 1 grp:dep2:jar:1:compile", arr_tree["grp:dep2:jar:1:compile"])
     #assert_equals("Tree should contain dependency", "grp:dep:jar:1:compile/grp:dep2:jar:1:compile", arr_tree["grp:art:jar:1:compile"])
-    for (k in arr_mvn_out) delete arr_mvn_out[k]
 }
 
 function test_tree_with_test_scope() {
@@ -73,7 +74,6 @@ function test_tree_with_test_scope() {
             "\"grp:art:jar:1\" -> \"grp:dep:jar:1:test\";\n" \
             "\"grp:dep:jar:1:test\" -> \"ERROR 1 grp:dep:jar:1:test\";" \
             , output)
-    for (k in arr_mvn_out) delete arr_mvn_out[k]
 }
 
 function test_tree_with_transitive_test_dependency() {
@@ -89,7 +89,6 @@ function test_tree_with_transitive_test_dependency() {
             "\"grp:dep:jar:1:test\" -> \"ERROR 1 grp:dep:jar:1:test\";" \
             , str_out)
     assert_equals("Should not give error", 0, retval)
-    for (k in arr_mvn_out) delete arr_mvn_out[k]
 }
 function test_len() {
     arr[1] = 1
@@ -117,6 +116,12 @@ function test_arguments() {
     assert_equals("Too many arguments should print usage", "Usage: dependency_tree.awk FILE", str_out)
 
     for (k in ARGV) delete ARGV[k]
+}
+
+function reset() {
+    for (k in seen) delete seen[k]
+    for (k in arr_tree) delete arr_tree[k]
+    for (k in arr_mvn_out) delete arr_mvn_out[k]
 }
 
 function assert_equals(message, expected, actual) {

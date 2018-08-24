@@ -11,7 +11,7 @@ function main() {
     }
     file = ARGV[1]
     repo = get_repo()
-    error = tree_top(file, repo)
+    error = tree_top(file)
     if (error) {
         prnt("ERROR " error)
         return error
@@ -22,7 +22,7 @@ function main() {
     return 0
 }
 
-function tree_top(file, repo) {
+function tree_top(file) {
     prnt("digraph {")
     retval_treetop = tree(file, "",  arr_tree, arr_mvn_out)
     if (retval_treetop) return retval_treetop
