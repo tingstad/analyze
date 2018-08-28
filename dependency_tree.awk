@@ -49,8 +49,9 @@ function tree(file, scope, arr_tree, arr_mvn_out, n, k, line, src, root, success
             }
             if (src == root) {
                 from = coordinate(src) (scope ? ":" scope : "")
-                if (get_packaging(from) == "bundle") {
+                if (get_packaging(from) == "bundle" && !seen[without_pkg(from)]) {
                     print_dep(prev_to, from)
+                    seen[without_pkg(from)]++
                     return 0
                 }
                 to = coordinate(dest)
