@@ -126,7 +126,7 @@ function get_dep_tree(file, dest_arr) {
 }
 
 function mvn_dep_tree(file) {
-    return "mvn --batch-mode --non-recursive --fail-fast --file \"" file "\" dependency:tree -DoutputType=dot"
+    return "mvn --batch-mode --non-recursive --fail-fast --file \"" file "\" dependency:tree -Dscope=runtime -DoutputType=dot"
 }
 
 function get_repo() {
