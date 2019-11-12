@@ -223,7 +223,8 @@ testEndToEnd() {
     local base1="$dir/module1"
     local base2="$dir/module2"
     local base3="$dir/module3"
-    mkdir -p "$base1/src/main/java/com/m1" "$base2/src/main/java/com/m2" "$base3/src/main/java/com/m3"
+    local base4="$dir/module4"
+    mkdir -p "$base1/src/main/java/com/m1" "$base2/src/main/java/com/m2" "$base3/src/main/java/com/m3" "$base4"
     TMPDIR="$dir"
     cat <<- EOF > "$dir/pom.xml"
 		<project>
@@ -236,14 +237,18 @@ testEndToEnd() {
 		        <module>module1</module>
 		        <module>module2</module>
 		        <module>module3</module>
+		        <module>module4</module>
 		    </modules>
 		</project>
 	EOF
     project g module-one 1 \
         "$(dependency g module-two 1)" > "$base1/pom.xml"
     project g module-two 1 \
-        "$(dependency g module-three 1)" > "$base2/pom.xml"
+        "$(dependency g module-three 1)" \
+        "$(dependency g module-four 1 runtime)" \
+        > "$base2/pom.xml"
     project g module-three 1 > "$base3/pom.xml"
+    project g module-four 1 > "$base4/pom.xml"
     cat <<- EOF > "$base1/src/main/java/com/m1/One.java"
 		package com.m1;
 		import static com.m2.Two.A;
@@ -265,11 +270,13 @@ testEndToEnd() {
 
     read -r -d '' expected <<- EOF
 		digraph {
-		"g:module-three:1" [fixedsize=true,width=2.37171,height=1.58114];
-		"g:module-two:1" [fixedsize=true,width=2.37171,height=1.58114];
-		"g:module-one:1" [fixedsize=true,width=3.75,height=2.5];
+		"g:module-four:1" [fixedsize=true,width=2.01246,height=1.34164];
+		"g:module-three:1" [fixedsize=true,width=2.84605,height=1.89737];
+		"g:module-two:1" [fixedsize=true,width=2.84605,height=1.89737];
+		"g:module-one:1" [fixedsize=true,width=4.5,height=3];
 		"g:module-one:1" -> "g:module-two:1" [penwidth=0.2];
-		"g:module-two:1" -> "g:module-three:1";
+		"g:module-two:1" -> "g:module-four:1";
+		"g:module-two:1" -> "g:module-three:1" [style=dashed];
 		"g:module-one:1" -> "g:module-three:1" [penwidth=0.1,color=red];
 		}
 	EOF
@@ -287,7 +294,7 @@ project() {
 		        <maven.compiler.source>1.6</maven.compiler.source>
 		        <maven.compiler.target>1.6</maven.compiler.target>
 		    </properties>
-		    <dependencies>$4</dependencies>
+		    <dependencies>$4$5</dependencies>
 		</project>
 	EOF
 }
